@@ -1,0 +1,79 @@
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+from torchvision.utils import save_image
+from PIL import Image
+import os
+
+class CatImagesDataset(Dataset):
+
+    #To transform the images 
+    def __init__(self, directory, transform=None):
+        self.directory = directory
+        self.transform = transform
+        self.image_files = [f for f in os.listdir(directory) if f.endswith('.jpg')]
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.directory, self.image_files[idx])
+        image = Image.open(img_path).convert('RGB')  # Convert image to RGB
+        if self.transform:
+            image = self.transform(image)
+        return image
+    
+
+class ForwardDiffusion:
+
+    def __init__(self, transform, input_path, output_folder, noise_std=0.1):
+
+        self.transform=transform
+
+        cat_dataset = CatImagesDataset(directory=input_path, transform=self.transform)
+        self.data = DataLoader(cat_dataset, batch_size=32, shuffle=True)
+
+        self.output_folder = output_folder
+        self.noise_std = noise_std
+        self.step = 0
+
+    def add_noise(self, inputs):
+        noise = torch.randn_like(inputs) * self.noise_std
+        #print("hello", torch.randn_like(inputs))
+        #print("noise", noise)
+        return inputs + noise
+
+    def save_images(self, images, step, n_batch):
+        step_folder = os.path.join(self.output_folder, f'step_{step}')
+        os.makedirs(step_folder, exist_ok=True)
+        for i, image in enumerate(images):
+            image = image.clamp(0, 1)
+            save_image(image, os.path.join(step_folder, f'image_{n_batch}-{i}.jpg'))
+
+    def run(self, n_times):
+        for _ in range(n_times):
+            i=0
+            for batch in self.data:
+                #print(batch)
+                i+=1
+                noisy_batch = self.add_noise(batch)
+                self.save_images(noisy_batch, self.step, i)
+
+            input_path = os.path.join(self.output_folder, f'step_{self.step}')
+            dataset = CatImagesDataset(directory=input_path, transform=self.transform)
+            self.data = DataLoader(dataset, batch_size=32, shuffle=True)
+            print("done step", self.step)
+            self.step += 1
+
+# Define your transforms here
+transformations = transforms.Compose([
+    transforms.Resize((256, 256)),  # Resize the image
+    transforms.ToTensor(),  # Convert the image to a PyTorch Tensor
+])
+
+
+input_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_treated'
+output_path = '../CAT_00_noisy'
+
+forward_diff = ForwardDiffusion(transformations, input_path, output_path)
+forward_diff.run(100)
