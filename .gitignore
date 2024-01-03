@@ -127,7 +127,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-env_diff
+env_diff/
 
 # Spyder project settings
 .spyderproject
