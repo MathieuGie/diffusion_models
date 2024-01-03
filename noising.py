@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
@@ -26,22 +27,22 @@ class CatImagesDataset(Dataset):
 
 class ForwardDiffusion:
 
-    def __init__(self, transform, input_path, output_folder, noise_std=0.1):
+    def __init__(self, transform, input_path, output_folder, beta=0.1):
 
         self.transform=transform
 
         cat_dataset = CatImagesDataset(directory=input_path, transform=self.transform)
-        self.data = DataLoader(cat_dataset, batch_size=32, shuffle=True)
+        self.data = DataLoader(cat_dataset, batch_size=32, shuffle=False)
 
         self.output_folder = output_folder
-        self.noise_std = noise_std
+        self.beta = beta
         self.step = 0
 
     def add_noise(self, inputs):
-        noise = torch.randn_like(inputs) * self.noise_std
+        noise = torch.randn_like(inputs) * np.sqrt(self.beta)
         #print("hello", torch.randn_like(inputs))
         #print("noise", noise)
-        return inputs + noise
+        return np.sqrt(1-self.beta)* inputs + noise
 
     def save_images(self, images, step, n_batch):
         step_folder = os.path.join(self.output_folder, f'step_{step}')
@@ -61,7 +62,7 @@ class ForwardDiffusion:
 
             input_path = os.path.join(self.output_folder, f'step_{self.step}')
             dataset = CatImagesDataset(directory=input_path, transform=self.transform)
-            self.data = DataLoader(dataset, batch_size=32, shuffle=True)
+            self.data = DataLoader(dataset, batch_size=32, shuffle=False)
             print("done step", self.step)
             self.step += 1
 
@@ -76,4 +77,4 @@ input_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diff
 output_path = '../CAT_00_noisy'
 
 forward_diff = ForwardDiffusion(transformations, input_path, output_path)
-forward_diff.run(100)
+forward_diff.run(30)
