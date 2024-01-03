@@ -6,6 +6,7 @@ from torchvision.utils import save_image
 from PIL import Image
 import os
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
 
 class encoder(nn.Module):
@@ -14,7 +15,6 @@ class encoder(nn.Module):
         
         layers = []
         in_channels = 3  # we have RGB images
-
 
         #The encoder uses convolutional layers to progressively reduce the spatial dimensions while increasing the feature depth, 
         #compressing the image into a denser form.
@@ -57,5 +57,41 @@ class decoder(nn.Module):
         return img
 
 
+######## TEST #################
+
+# Initialize your encoder and decoder
+enc = encoder(m=1)  
+dec = decoder(m=1)  
+
+# Load your image
+image_path = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/resize_animal/bear_0.jpg'  # replace with an actual image file name
+image = Image.open(image_path).convert('RGB')
 
 
+# Transform the image
+transform = transforms.Compose([
+    transforms.ToTensor()
+])
+image = transform(image).unsqueeze(0)  # Add batch dimension
+
+
+# Pass the image through the encoder and decoder
+with torch.no_grad():  # No need to track gradients for this
+    encoded_img = enc(image)
+    decoded_img = dec(encoded_img)
+
+# Convert the tensor back to an image for visualization
+output_image = transforms.ToPILImage()(decoded_img.squeeze(0))
+
+# Plot the original and reconstructed image
+plt.subplot(1, 2, 1)
+plt.imshow(image.squeeze(0).permute(1, 2, 0))
+plt.title("Original Image")
+plt.axis('off')
+
+plt.subplot(1, 2, 2)
+plt.imshow(output_image)
+plt.title("Reconstructed Image")
+plt.axis('off')
+
+plt.show()
