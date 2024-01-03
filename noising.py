@@ -73,8 +73,8 @@ transformations = transforms.Compose([
 ])
 
 
-input_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_treated'
-output_path = '../CAT_00_noisy'
+input_path =  'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/resize_animal'
+output_path = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/noisy_animal'
 
 forward_diff = ForwardDiffusion(transformations, input_path, output_path)
 forward_diff.run(30)
