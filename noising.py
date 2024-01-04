@@ -78,3 +78,4 @@ output_path = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/noisy_animal'
 
 forward_diff = ForwardDiffusion(transformations, input_path, output_path)
 forward_diff.run(30)
+
