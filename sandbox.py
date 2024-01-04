@@ -37,7 +37,7 @@ class PairedImagesDataset(Dataset):
             image_t_1 = self.transform(image_t_1)
             image_t = self.transform(image_t)
 
-        return image_t, image_t_1
+        return image_t.to(mps_device), image_t_1.to(mps_device)
 
 
 class CNN(nn.Module):
@@ -57,7 +57,7 @@ class CNN(nn.Module):
         x = self.relu(self.conv2(x))
         x = self.relu(self.conv3(x))
         x = self.relu(self.conv4(x))
-        x = self.conv5(x)  # No activation function in the final layer
+        x = self.conv5(x)
 
         return x
 
@@ -101,11 +101,7 @@ class DiffusionProcess():
             i=0
             for image_t, image_t_1 in self.data_loader:
 
-                L = self.get_loss(image_t, image_t_1)
-
                 print("batch done", i)
-
-                L/=self.batch_size
 
                 self.optimizer.zero_grad()
                 L = self.get_loss(image_t, image_t_1)
@@ -151,13 +147,15 @@ if not torch.backends.mps.is_available():
 else:
     mps_device = torch.device("mps")
 
+
+print("MPS", mps_device)
 #Running:
 cnn = CNN()
-#cnn.to(mps_device)
+cnn.to(mps_device)
 
 noisy_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_noisy/step_1'
 not_noisy_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_noisy/step_0'
-diffusion_process = DiffusionProcess(cnn, batch_size=32, dir_step_1=noisy_path, dir_step_2=not_noisy_path, transform=transformations)
+diffusion_process = DiffusionProcess(cnn, batch_size=64, dir_step_1=noisy_path, dir_step_2=not_noisy_path, transform=transformations)
 diffusion_process.training(num_epochs=1000)
 
 
