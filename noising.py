@@ -12,7 +12,7 @@ class CatImagesDataset(Dataset):
     def __init__(self, directory, transform=None):
         self.directory = directory
         self.transform = transform
-        self.image_files = [f for f in os.listdir(directory) if f.endswith('.jpg')]
+        self.image_files = sorted([f for f in os.listdir(directory) if f.endswith('.jpg')])
 
     def __len__(self):
         return len(self.image_files)
@@ -36,12 +36,22 @@ class ForwardDiffusion:
 
         self.output_folder = output_folder
         self.beta = beta
-        self.step = 0
+        self.step = 1
+
+        self.save_original_images(input_path, output_folder)
+
+    def save_original_images(self, input_path, output_folder):
+        step_0_folder = os.path.join(output_folder, 'step_0')
+        os.makedirs(step_0_folder, exist_ok=True)
+        cat_dataset = CatImagesDataset(directory=input_path, transform=self.transform)
+        data_loader = DataLoader(cat_dataset, batch_size=32, shuffle=False)
+        for n_batch, batch in enumerate(data_loader, start=1):
+            for i, image in enumerate(batch):
+                image = image.clamp(0, 1)
+                save_image(image, os.path.join(step_0_folder, f'image_{n_batch-1}-{i}.jpg'))
 
     def add_noise(self, inputs):
         noise = torch.randn_like(inputs) * np.sqrt(self.beta)
-        #print("hello", torch.randn_like(inputs))
-        #print("noise", noise)
         return np.sqrt(1-self.beta)* inputs + noise
 
     def save_images(self, images, step, n_batch):
@@ -49,7 +59,7 @@ class ForwardDiffusion:
         os.makedirs(step_folder, exist_ok=True)
         for i, image in enumerate(images):
             image = image.clamp(0, 1)
-            save_image(image, os.path.join(step_folder, f'image_{n_batch}-{i}.jpg'))
+            save_image(image, os.path.join(step_folder, f'image_{n_batch-1}-{i}.jpg'))
 
     def run(self, n_times):
         for _ in range(n_times):
@@ -77,4 +87,4 @@ input_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diff
 output_path = '../CAT_00_noisy'
 
 forward_diff = ForwardDiffusion(transformations, input_path, output_path)
-forward_diff.run(30)
+forward_diff.run(10)
