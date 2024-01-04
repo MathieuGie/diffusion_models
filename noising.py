@@ -87,9 +87,4 @@ input_path =  'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/resize_animal
 output_path = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/noisy_animal'
 
 forward_diff = ForwardDiffusion(transformations, input_path, output_path)
-<<<<<<< HEAD
-forward_diff.run(30)
-
-=======
 forward_diff.run(10)
->>>>>>> 035f8c03075141f12593721eff3531a0b270d6be

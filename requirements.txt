@@ -9,3 +9,7 @@ tensorflow
 keras
 opencv-python
 scipy
+tqdm 
+clip
+pytorch-lightning
+mlfow

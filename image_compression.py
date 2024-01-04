@@ -9,12 +9,16 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import torch.optim as optim
 from tqdm import tqdm
+import pytorch_lightning as pl
+from pytorch_lightning.loggers import MLFlowLogger
+import random
+from sklearn.model_selection import train_test_split
 
 
-####### CONVOLUTIONAL MODEL ##################
-class Encoder(nn.Module):
+
+class Encoder(pl.LightningModule):
     def __init__(self, m):
-        super(Encoder, self).__init__()
+        super().__init__()
         
         layers = []
         in_channels = 3  # RGB images
@@ -31,9 +35,9 @@ class Encoder(nn.Module):
     def forward(self, img):
         return self.conv_layers(img)
 
-class Decoder(nn.Module):
+class Decoder(pl.LightningModule):
     def __init__(self, m):
-        super(Decoder, self).__init__()
+        super().__init__()
 
         layers = []
         in_channels = 2 ** m * 3  # Depending on the encoder's last layer output channels
@@ -51,11 +55,73 @@ class Decoder(nn.Module):
 
     def forward(self, img_latent_space):
         return self.conv_layers(img_latent_space)
+    
 
-########## TRAINING ########################
+class Encoder_Decoder(pl.LightningModule):
+    def __init__(self,):
+        super().__init__()
+        self.encoder = Encoder(m=4)
+        self.encoder.to(device)  
+        self.decoder = Decoder(m=4)
+        self.decoder.to(device)
+        
+    def forward(self,x):
+        x=self.encoder(x)
+        return self.decoder(x)
+    
+ 
+    #computation of the loss 
+    def _step(self, batch, batch_idx):
+
+        outputs = self(batch) #renvoie le resultat du decodeur 
+        loss = torch.nn.functional.mse_loss(outputs, batch)
+        return loss
+
+    
+    def training_step(self,batch, batch_idx):
+
+        # Called to compute and log the training loss
+        loss = self._step(batch, batch_idx)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+
+        # Called to compute and log the validation loss
+        val_loss = self._step(batch, batch_idx)
+        self.log("val_loss", val_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return val_loss
+
+    def configure_optimizers(self):
+
+        # Optimizer and LR scheduler
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        return optimizer
+
+
+class image_dataset(Dataset):
+    def __init__(self, dir, transform=None, file_list=None):
+        self.dir = dir
+        self.transform = transform
+        if file_list is not None:
+            self.images = file_list
+        else:
+            self.images = os.listdir(dir)  # Fallback to using all files if file_list is not provided
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.dir, self.images[idx])
+        image = Image.open(img_name).convert('RGB')
+        
+        if self.transform:
+            image = self.transform(image)
+
+        return image
 
 # Chemin vers le dataset
-dataset_path = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/Dataset/animals'
+dataset_path = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/Dataset/animals/cat'
 
 # Transformations 
 transform = transforms.Compose([
@@ -63,17 +129,17 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-# Charger le dataset
-full_dataset = datasets.ImageFolder(dataset_path, transform=transform)
 
-# Séparer le dataset en ensembles d'entraînement et de validation
-train_size = int(0.8 * len(full_dataset))
-val_size = len(full_dataset) - train_size
-train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
+image_files = os.listdir(dataset_path)
+random.shuffle(image_files)
 
-# DataLoader pour l'entraînement et la validation
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+train_files, test_files = train_test_split(image_files, test_size=0.2)  # Adjust test_size as needed
+
+train_dataset = image_dataset(dataset_path,transform, file_list=train_files)
+test_dataset = image_dataset(dataset_path, transform, file_list=test_files)
+
+dataloader_train = DataLoader(train_dataset, batch_size=32, shuffle=True)
+dataloader_val = DataLoader(test_dataset, batch_size=32, shuffle=True)
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -81,73 +147,14 @@ print("device", device)
 
 
 # Initialisation du modèle
-encoder = Encoder(m=4)
-encoder.to(device)  
-decoder = Decoder(m=4)
-decoder.to(device)
 
-criterion = nn.MSELoss()
-optimizer = optim.Adam(list(encoder.parameters()) + list(decoder.parameters()), lr=0.001)
 
-from tqdm import tqdm
+model=Encoder_Decoder()
+model.to(device)
 
-def train_model(encoder, decoder, criterion, optimizer, train_loader, val_loader, epochs=25):
-    for epoch in range(epochs):
-        encoder.train()  # Set encoder to training mode
-        decoder.train()  # Set decoder to training mode
+mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
 
-        total_train_loss = 0.0
+trainer = pl.Trainer(max_epochs=50, logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.1)
 
-        # Training loop with progress bar
-        train_progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{epochs} [Training]')
-        for inputs, _ in train_progress_bar:
-            inputs = inputs.to(device)
-            
-            # Reset gradients
-            optimizer.zero_grad()
-
-            # Forward pass
-            encoded_imgs = encoder(inputs)
-            decoded_imgs = decoder(encoded_imgs)
-
-            # Loss calculation
-            loss = criterion(decoded_imgs, inputs)
-
-            # Backward pass and optimization
-            loss.backward()
-            optimizer.step()
-
-            total_train_loss += loss.item() * inputs.size(0)
-            train_progress_bar.set_postfix(loss=loss.item())
-
-        # Average training loss for the epoch
-        average_train_loss = total_train_loss / len(train_loader.dataset)
-
-        # Validation phase
-        encoder.eval()  # Set encoder to evaluation mode
-        decoder.eval()  # Set decoder to evaluation mode
-        total_val_loss = 0.0
-
-        # Validation loop with progress bar
-        val_progress_bar = tqdm(val_loader, desc=f'Epoch {epoch+1}/{epochs} [Validation]')
-        with torch.no_grad():
-            for inputs, _ in val_progress_bar:
-                inputs = inputs.to(device)
-
-                # Forward pass
-                encoded_imgs = encoder(inputs)
-                decoded_imgs = decoder(encoded_imgs)
-
-                # Loss calculation
-                loss = criterion(decoded_imgs, inputs)
-                total_val_loss += loss.item() * inputs.size(0)
-                val_progress_bar.set_postfix(loss=loss.item())
-
-        # Average validation loss for the epoch
-        average_val_loss = total_val_loss / len(val_loader.dataset)
-
-        print(f'Epoch [{epoch+1}/{epochs}], Train Loss: {average_train_loss:.4f}, Val Loss: {average_val_loss:.4f}')
-
-    return encoder, decoder
-
-trained_encoder, trained_decoder = train_model(encoder, decoder, criterion, optimizer, train_loader, val_loader, epochs=25)
+#trainer = pl.Trainer(max_epochs=50, accelerator="mps", logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.1)
+trainer.fit(model, dataloader_train, dataloader_val)
