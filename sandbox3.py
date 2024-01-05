@@ -9,6 +9,8 @@ import pytorch_lightning as pl
 from lightning.pytorch.loggers import MLFlowLogger
 import random
 from sklearn.model_selection import train_test_split
+from torchvision.utils import save_image
+import torchvision.transforms.functional as TF
 
 
 class CNN(pl.LightningModule):
@@ -17,49 +19,49 @@ class CNN(pl.LightningModule):
 
         self.relu = nn.ReLU()
         # Encoder layers
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=25, padding=1)
-        self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=25, padding=1)
-        self.conv3 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=25, padding=1)
-        self.conv4 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=25, padding=1)
-        # Latent space layer
-        self.conv_latent = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=12)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=256, kernel_size=25, padding=1)
+        self.maxpolling1 = nn.MaxPool2d(padding=1, kernel_size=4)
+        self.conv2 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=5, padding=1)
+        self.maxpolling2 = nn.MaxPool2d(padding=1, kernel_size=5)
+        self.conv3 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=6, padding=1)
+
         # Decoder layers
-        self.deconv1 = nn.ConvTranspose2d(in_channels=257, out_channels=128, kernel_size=4, padding=1)
-        self.deconv2 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=4, stride=2, padding=1)  
+        self.deconv1 = nn.ConvTranspose2d(in_channels=1025, out_channels=256, kernel_size=4, padding=1)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=256, out_channels=64, kernel_size=4, stride=2, padding=1)  
         self.deconv3 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=4, stride=2, padding=1) 
         self.deconv4 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=6, stride=3, padding=1)   
         self.deconv5 = nn.ConvTranspose2d(in_channels=16, out_channels=3, kernel_size=6, stride=4, padding=1)      
 
     def forward(self, x, t):
         # Encoding
-        print(x.shape)
+        #print(x.shape)
         x = self.relu(self.conv1(x))
-        print(x.shape)
+        #print(x.shape)
+        x = self.maxpolling1(x)
+        #print(x.shape)
         x = self.relu(self.conv2(x))
-        print(x.shape)
+        #print(x.shape)
+        x = self.maxpolling2(x)
+        #print(x.shape)
         x = self.relu(self.conv3(x))
-        print(x.shape)
-        x = self.relu(self.conv4(x))
-        print(x.shape)
-        x = self.relu(self.conv_latent(x))
 
         # Concatenating with t
         #t_tensor = torch.full((x.size(0), 1, x.size(2), x.size(3)), t, device=x.device)
-        print(x.shape, t.shape)
+        #print(x.shape, t.shape)
         x = torch.cat((x, t), dim=1)
-        print(x.shape)
+        #print(x.shape)
 
         # Decoding
         x = self.relu(self.deconv1(x))
-        print(x.shape)
+        #print(x.shape)
         x = self.relu(self.deconv2(x))
-        print(x.shape)
+        #print(x.shape)
         x = self.relu(self.deconv3(x))
-        print(x.shape)
+        #print(x.shape)
         x = self.relu(self.deconv4(x))
-        print(x.shape)
+        #print(x.shape)
         x = self.relu(self.deconv5(x))
-        print(x.shape)
+        #print(x.shape)
 
         return x
     
@@ -94,7 +96,7 @@ class CNN(pl.LightningModule):
 
 
 class DenoisingDataset(Dataset):
-    def __init__(self, base_dir, transform=None, file_list=None):
+    def __init__(self, base_dir, transform=None, file_list=None, subset_fraction=0.15):
         self.base_dir = base_dir
         self.transform = transform
 
@@ -124,6 +126,8 @@ class DenoisingDataset(Dataset):
                         # Check if the corresponding less noisy image exists in the previous step
                         if os.path.exists(previous_img_path):
                             self.image_pairs.append((current_img_path, previous_img_path, step/10))
+
+        self.image_pairs = random.sample(self.image_pairs, int(len(self.image_pairs) * subset_fraction))
 
     def __len__(self):
         return len(self.image_pairs)
@@ -181,5 +185,29 @@ model.to(mps_device)
 
 mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
 
-trainer = pl.Trainer(max_epochs=8, accelerator="mps", logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.25)
+trainer = pl.Trainer(max_epochs=10, accelerator="mps", logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.5)
 trainer.fit(model, dataloader_train, dataloader_test)
+
+
+#GENERATE NEW IMAGES
+
+folder_name = "generated_images"
+os.makedirs(folder_name, exist_ok=True)
+
+image = torch.rand((3,100,100))
+step=1
+
+for i in range(10):
+
+    batched_image = image.unsqueeze(0)
+
+    step_tensor = torch.zeros((1,1,1,1))
+    step_tensor[0,0,0,0]=step
+
+    image = model(batched_image, step_tensor)[0,:,:,:]
+    step-=1/10
+
+    pil_image = TF.to_pil_image(image)
+
+    image_path = os.path.join(folder_name, f"image_{i}.png")
+    pil_image.save(image_path)
