@@ -10,6 +10,8 @@ from lightning.pytorch.loggers import MLFlowLogger
 import random
 from sklearn.model_selection import train_test_split
 
+
+# 1. Pytorch Lightning (=PL)
 class CNN(pl.LightningModule):
     def __init__(self):
         super().__init__()
@@ -21,7 +23,7 @@ class CNN(pl.LightningModule):
         self.conv4 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1)
         self.conv5 = nn.Conv2d(in_channels=512, out_channels=3, kernel_size=3, padding=1)
 
-    def forward(self, x):
+    def forward(self, x, t):
 
         x = self.relu(self.conv1(x))
         x = self.relu(self.conv2(x))
@@ -32,6 +34,8 @@ class CNN(pl.LightningModule):
         return x
     
     def _step(self, batch, batch_idx):
+
+        # Basic function to compute the loss
         noisy_imgs, clean_imgs = batch
         outputs = self(noisy_imgs)
         loss = torch.nn.functional.mse_loss(outputs, clean_imgs)
@@ -40,20 +44,23 @@ class CNN(pl.LightningModule):
     
     def training_step(self,batch, batch_idx):
 
+        # Called to compute and log the training loss
         loss = self._step(batch, batch_idx)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
-        return optimizer
     
     def validation_step(self, batch, batch_idx):
 
+        # Called to compute and log the validation loss
         val_loss = self._step(batch, batch_idx)
         self.log("val_loss", val_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return val_loss
 
+    def configure_optimizers(self):
+        # Optimizer and LR scheduler
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        return optimizer
+    
 
 class DenoisingDataset(Dataset):
     def __init__(self, noisy_dir, clean_dir, transform=None, file_list=None):
@@ -119,5 +126,5 @@ model.to(mps_device)
 
 mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
 
-trainer = pl.Trainer(max_epochs=50, accelerator="mps", logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.1)
+trainer = pl.Trainer(max_epochs=8, accelerator="mps", logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.25)
 trainer.fit(model, dataloader_train, dataloader_test)

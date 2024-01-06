@@ -78,7 +78,7 @@ class ForwardDiffusion:
 
 # Define your transforms here
 transformations = transforms.Compose([
-    transforms.Resize((256, 256)),  # Resize the image
+    transforms.Resize((100, 100)),  # Resize the image
     transforms.ToTensor(),  # Convert the image to a PyTorch Tensor
 ])
 
