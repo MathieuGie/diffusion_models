@@ -12,6 +12,11 @@ from sklearn.model_selection import train_test_split
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 
+epochs = 3
+size = 20
+batches = 128
+noising_steps = 50
+
 
 class CNN(pl.LightningModule):
     def __init__(self):
@@ -19,28 +24,31 @@ class CNN(pl.LightningModule):
 
         self.relu = nn.ReLU()
         # Encoder layers
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=256, kernel_size=20, padding=1, stride=2)
-        self.maxpolling1 = nn.MaxPool2d(padding=1, kernel_size=2)
-        self.conv2 = nn.Conv2d(in_channels=256, out_channels=1024, kernel_size=4, padding=1)
-        self.maxpolling2 = nn.MaxPool2d(padding=1, kernel_size=2)
-        self.conv3 = nn.Conv2d(in_channels=1024, out_channels=4096, kernel_size=5)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=512, kernel_size=4, padding=1, stride=2)
+        #self.maxpolling1 = nn.MaxPool2d(padding=1, kernel_size=2)
+        self.conv2 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=12, padding=1)
+        #self.maxpolling2 = nn.MaxPool2d(padding=1, kernel_size=2)
+        #self.conv3 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=5)
 
         # Decoder layers
-        self.linear1 = nn.Linear(4097, 12288)
-        self.linear2 = nn.Linear(12288, 7500)
+        self.linear1 = nn.Linear(1025, 2000)
+        #self.linear2 = nn.Linear(800, 500)
+        self.linear3 = nn.Linear(2000, 3*size**2)
+
+        self.epochh=0
 
     def forward(self, x, t):
         # Encoding
         #print(x.shape)
         x = self.relu(self.conv1(x))
         #print(x.shape)
-        x = self.maxpolling1(x)
+        #x = self.maxpolling1(x)
         #print(x.shape)
         x = self.relu(self.conv2(x))
         #print(x.shape)
-        x = self.maxpolling2(x)
+        #x = self.maxpolling2(x)
         #print(x.shape)
-        x = self.relu(self.conv3(x))
+        #x = self.relu(self.conv3(x))
 
         # Concatenating with t
         #t_tensor = torch.full((x.size(0), 1, x.size(2), x.size(3)), t, device=x.device)
@@ -52,19 +60,23 @@ class CNN(pl.LightningModule):
         #print(x.shape)
         # Decoding
         x = self.relu(self.linear1(x))
-        x = self.linear2(x)
-        #print(x.shape)
-
-        x = x.view(x.size(0), 3, 50, 50)
+        #x = self.relu(self.linear2(x))
+        x = self.linear3(x)
 
         return x
     
     def _step(self, batch, batch_idx):
 
-        # Basic function to compute the loss
         noisy_imgs, clean_imgs, t = batch
+
         outputs = self(noisy_imgs, t)
-        loss = torch.nn.functional.mse_loss(outputs, noisy_imgs-clean_imgs)
+
+        target = noisy_imgs-clean_imgs
+        target = target.view(target.size(0), -1)
+
+        #target = torch.zeros(outputs.shape).to(mps_device)
+
+        loss = nn.functional.mse_loss(outputs, target)
         return loss
     
 
@@ -87,10 +99,47 @@ class CNN(pl.LightningModule):
         # Optimizer and LR scheduler
         optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
         return optimizer
+    
+    def on_train_epoch_start(self):
+        
+        with torch.no_grad():
+
+            image = torch.rand((3,size,size)).to(mps_device)
+            step=1
+            i=0
+            
+            if not os.path.exists('predictions'):
+                os.makedirs('predictions', inplace=True)
+            step_folder = os.path.join('predictions', f'epoch_{self.epochh}')
+
+            os.makedirs(step_folder, exist_ok=True)
+
+            for i in range(noising_steps):
+
+                batched_image = image.unsqueeze(0)
+
+                step_tensor = torch.zeros((1,1,1,1)).to(mps_device)
+                step_tensor[0,0,0,0]=step
+
+                result = model(batched_image, step_tensor)[0,:]
+                result = result.view(3,size, size)
+                image-=result.to(mps_device)
+
+                step-=1/noising_steps
+
+                pil_image = TF.to_pil_image(image)
+
+
+                image_path = os.path.join(step_folder, f"image_{i}.png")
+                pil_image.save(image_path, inplace=True)
+                i+=1
+
+        self.epochh+=1
+        self.train()
 
 
 class DenoisingDataset(Dataset):
-    def __init__(self, base_dir, transform=None, file_list=None, subset_fraction=0.8):
+    def __init__(self, base_dir, transform=None, file_list=None, subset_fraction=0.05):
         self.base_dir = base_dir
         self.transform = transform
 
@@ -100,7 +149,7 @@ class DenoisingDataset(Dataset):
         # If file_list is None, use all images in the directory
         if file_list is None:
             file_list = []
-            for step in range(1, 13):
+            for step in range(1, noising_steps+1):
                 step_dir = os.path.join(base_dir, f'step_{step}')
                 if os.path.exists(step_dir):
                     file_list.extend(os.listdir(step_dir))
@@ -119,7 +168,7 @@ class DenoisingDataset(Dataset):
 
                         # Check if the corresponding less noisy image exists in the previous step
                         if os.path.exists(previous_img_path):
-                            self.image_pairs.append((current_img_path, previous_img_path, step/12))
+                            self.image_pairs.append((current_img_path, previous_img_path, step/noising_steps))
 
         self.image_pairs = random.sample(self.image_pairs, int(len(self.image_pairs) * subset_fraction))
 
@@ -159,8 +208,8 @@ train_files, test_files = train_test_split(image_files, test_size=0.3)  # Adjust
 train_dataset = DenoisingDataset(dir_all, transform, file_list=train_files)
 test_dataset = DenoisingDataset(dir_all, transform, file_list=test_files)
 
-dataloader_train = DataLoader(train_dataset, batch_size=128, shuffle=True)
-dataloader_test = DataLoader(test_dataset, batch_size=128, shuffle=True)
+dataloader_train = DataLoader(train_dataset, batch_size=batches, shuffle=True)
+dataloader_test = DataLoader(test_dataset, batch_size=batches, shuffle=True)
 
 #Devise:
 if not torch.backends.mps.is_available():
@@ -179,7 +228,7 @@ model.to(mps_device)
 
 mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
 
-trainer = pl.Trainer(max_epochs=100, accelerator="mps", logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.5)
+trainer = pl.Trainer(max_epochs=epochs, accelerator="mps", logger=mlf_logger, log_every_n_steps=1)
 trainer.fit(model, dataloader_train, dataloader_test)
 
 
@@ -188,20 +237,36 @@ trainer.fit(model, dataloader_train, dataloader_test)
 folder_name = "generated_images"
 os.makedirs(folder_name, exist_ok=True)
 
-image = torch.rand((3,50,50))
+image = torch.rand((3,size,size))
 step=1
 
-for i in range(12):
+# Path to the 'step_20' folder
+step_20_folder = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_noisy/step_20'  # Update this path to your actual folder path
+
+# Get the list of image files in the folder
+image_files = sorted([f for f in os.listdir(step_20_folder) if f.endswith('.jpg')])
+
+# Load the first image
+img_path = os.path.join(step_20_folder, image_files[0])
+image = Image.open(img_path).convert('RGB')
+
+transform = transforms.ToTensor()
+image = transform(image)
+
+for i in range(noising_steps):
 
     batched_image = image.unsqueeze(0)
 
     step_tensor = torch.zeros((1,1,1,1))
     step_tensor[0,0,0,0]=step
 
-    image -= model(batched_image, step_tensor)[0,:,:,:]
-    step-=1/12
+    result = model(batched_image, step_tensor)[0,:]
+    result = result.view(3,size, size)
+    image-=result
+
+    step-=1/noising_steps
 
     pil_image = TF.to_pil_image(image)
 
     image_path = os.path.join(folder_name, f"image_{i}.png")
-    pil_image.save(image_path)
+    pil_image.save(image_path, inplace=True)
