@@ -6,6 +6,8 @@ from torchvision.utils import save_image
 from PIL import Image
 import os
 
+T=50
+
 class CatImagesDataset(Dataset):
 
     #To transform the images 
@@ -27,7 +29,7 @@ class CatImagesDataset(Dataset):
 
 class ForwardDiffusion:
 
-    def __init__(self, transform, input_path, output_folder, beta=0.1):
+    def __init__(self, transform, input_path, output_folder, T):
 
         self.transform=transform
 
@@ -35,10 +37,13 @@ class ForwardDiffusion:
         self.data = DataLoader(cat_dataset, batch_size=32, shuffle=False)
 
         self.output_folder = output_folder
-        self.beta = beta
+        self.beta = 0.0001
         self.step = 1
 
+        self.T = T
+
         self.save_original_images(input_path, output_folder)
+
 
     def save_original_images(self, input_path, output_folder):
         step_0_folder = os.path.join(output_folder, 'step_0')
@@ -52,7 +57,10 @@ class ForwardDiffusion:
 
     def add_noise(self, inputs):
         noise = torch.randn_like(inputs) * np.sqrt(self.beta)
-        return np.sqrt(1-self.beta)* inputs + noise
+        return np.clip(np.sqrt(1-self.beta)* inputs + noise, 0, 1)
+    
+    def update_beta(self, step):
+        self.beta = 0.0199/self.T *step +0.0001
 
     def save_images(self, images, step, n_batch):
         step_folder = os.path.join(self.output_folder, f'step_{step}')
@@ -62,8 +70,12 @@ class ForwardDiffusion:
             save_image(image, os.path.join(step_folder, f'image_{n_batch-1}-{i}.jpg'))
 
     def run(self, n_times):
-        for _ in range(n_times):
+
+        for step in range(n_times):
             i=0
+            self.update_beta(step+1)
+            print(self.beta)
+
             for batch in self.data:
                 #print(batch)
                 i+=1
@@ -78,7 +90,7 @@ class ForwardDiffusion:
 
 # Define your transforms here
 transformations = transforms.Compose([
-    transforms.Resize((100, 100)),  # Resize the image
+    transforms.Resize((20, 20)),  # Resize the image
     transforms.ToTensor(),  # Convert the image to a PyTorch Tensor
 ])
 
@@ -86,5 +98,5 @@ transformations = transforms.Compose([
 input_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_treated'
 output_path = '../CAT_00_noisy'
 
-forward_diff = ForwardDiffusion(transformations, input_path, output_path)
-forward_diff.run(10)
+forward_diff = ForwardDiffusion(transformations, input_path, output_path, T)
+forward_diff.run(T)
