@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 
-epochs = 3
+epochs = 100
 size = 20
 batches = 128
 noising_steps = 50
@@ -139,7 +139,7 @@ class CNN(pl.LightningModule):
 
 
 class DenoisingDataset(Dataset):
-    def __init__(self, base_dir, transform=None, file_list=None, subset_fraction=0.05):
+    def __init__(self, base_dir, transform=None, file_list=None, subset_fraction=1):
         self.base_dir = base_dir
         self.transform = transform
 

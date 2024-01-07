@@ -1,7 +1,7 @@
 from PIL import Image
 import os
 
-def resize_images(folder, output_folder, size=(100, 100)):
+def resize_images(folder, output_folder, size=(20, 20)):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
@@ -11,6 +11,8 @@ def resize_images(folder, output_folder, size=(100, 100)):
             img = Image.open(os.path.join(folder, filename))
             # Resize the image and use ANTIALIAS filter to maintain quality
             img = img.resize(size)
+
+            print(img.size)
             # Save the resized image to the output folder
             img.save(os.path.join(output_folder, filename))
 
