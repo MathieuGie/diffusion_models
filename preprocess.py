@@ -15,9 +15,9 @@ def resize_images(folder, output_folder, size=(100, 100)):
             img.save(os.path.join(output_folder, filename))
 
 # Define the path to the folder containing the images
-source_folder = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/animal'
+source_folder = "G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/animals"
 # Define the path to the folder where resized images will be saved
-destination_folder = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/resize_animal'
+destination_folder = "G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/resize_animal"
 
 # Call the function with the updated folder paths
 resize_images(source_folder, destination_folder)
