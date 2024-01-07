@@ -16,6 +16,11 @@ from sklearn.model_selection import train_test_split
 
 
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("device", device)
+
+
+
 class Encoder(pl.LightningModule):
     def __init__(self, m):
         super().__init__()
@@ -99,6 +104,8 @@ class Encoder_Decoder(pl.LightningModule):
         return optimizer
 
 
+"""
+
 class image_dataset(Dataset):
     def __init__(self, dir, transform=None, file_list=None):
         self.dir = dir
@@ -121,7 +128,7 @@ class image_dataset(Dataset):
         return image
 
 # Chemin vers le dataset
-dataset_path = 'G:/Mon Drive/Polytechnique_M2/Deep_Learning/Dataset/Dataset/animals/cat'
+dataset_path = '/mnt/d/Hanna/Polytechnique/Deep_Learning/dataset/animals'
 
 # Transformations 
 transform = transforms.Compose([
@@ -142,8 +149,7 @@ dataloader_train = DataLoader(train_dataset, batch_size=32, shuffle=True)
 dataloader_val = DataLoader(test_dataset, batch_size=32, shuffle=True)
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("device", device)
+
 
 
 # Initialisation du modèle
@@ -154,7 +160,48 @@ model.to(device)
 
 mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
 
-trainer = pl.Trainer(max_epochs=50, logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.1)
+trainer = pl.Trainer(max_epochs=200, logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.1)
 
 #trainer = pl.Trainer(max_epochs=50, accelerator="mps", logger=mlf_logger, log_every_n_steps=1, val_check_interval=0.1)
 trainer.fit(model, dataloader_train, dataloader_val)
+
+
+# Save the model weights
+trainer.save_checkpoint("model_checkpoint.ckpt")
+
+
+
+"""
+
+model = Encoder_Decoder.load_from_checkpoint("model_checkpoint_2.ckpt")
+model.eval()  # Set the model to evaluation mode
+model.to(device)
+
+# Function to preprocess the image
+def preprocess_image(image_path, transform):
+    image = Image.open(image_path).convert('RGB')
+    return transform(image).unsqueeze(0).to(device)  # Add batch dimension and send to device
+
+# Example usage
+image_path = '/mnt/d/Hanna/Polytechnique/Deep_Learning/dataset/animals/0b54dde5f5.jpg'  # Replace with your image path
+
+transform = transforms.Compose([
+    transforms.Resize((256, 256)),  # Redimensionnement des images
+    transforms.ToTensor()
+])
+preprocessed_image = preprocess_image(image_path, transform)
+
+# Perform inference
+with torch.no_grad():  # Disable gradient computation for inference
+    output = model(preprocessed_image)
+
+    # Example of post-processing the output (modify as per your model's output)
+output_image = output.squeeze().cpu().detach().numpy()  # Remove batch dimension and convert to numpy
+output_image = np.transpose(output_image, (1, 2, 0))    # Change from CHW to HWC format
+output_image = (output_image * 255).astype(np.uint8)    # Scale back to 0-255 and convert to uint8
+
+# Save or display the output image
+plt.imshow(output_image)
+plt.show()
+
+
