@@ -24,7 +24,7 @@ class CatImagesDataset(Dataset):
         image = Image.open(img_path).convert('RGB')  # Convert image to RGB
         if self.transform:
             image = self.transform(image)
-        return image
+        return image, self.image_files[idx]
     
 
 class ForwardDiffusion:
@@ -50,10 +50,12 @@ class ForwardDiffusion:
         os.makedirs(step_0_folder, exist_ok=True)
         cat_dataset = CatImagesDataset(directory=input_path, transform=self.transform)
         data_loader = DataLoader(cat_dataset, batch_size=32, shuffle=False)
-        for n_batch, batch in enumerate(data_loader, start=1):
-            for i, image in enumerate(batch):
+        for batch in data_loader:
+            for i in range(batch[0].shape[0]):  # Correctly unpack the image and filename from each tuple in the batch
+
+                image, filename = batch[0][i], batch[1][i]
                 image = image.clamp(0, 1)
-                save_image(image, os.path.join(step_0_folder, f'image_{n_batch-1}-{i}.jpg'))
+                save_image(image, os.path.join(step_0_folder, filename))
 
     def add_noise(self, inputs):
         noise = torch.randn_like(inputs) * np.sqrt(self.beta)
@@ -62,26 +64,24 @@ class ForwardDiffusion:
     def update_beta(self, step):
         self.beta = 0.0199/self.T *step +0.0001
 
-    def save_images(self, images, step, n_batch):
+    def save_images(self, images, filenames, step):
         step_folder = os.path.join(self.output_folder, f'step_{step}')
         os.makedirs(step_folder, exist_ok=True)
-        for i, image in enumerate(images):
+        for image, filename in zip(images, filenames):  # Use the filename
             image = image.clamp(0, 1)
-            save_image(image, os.path.join(step_folder, f'image_{n_batch-1}-{i}.jpg'))
+            save_image(image, os.path.join(step_folder, filename))
 
     def run(self, n_times):
-
         for step in range(n_times):
-            i=0
             self.update_beta(step+1)
             print(self.beta)
 
-            for batch in self.data:
-                #print(batch)
-                i+=1
+            for i, (batch, filenames) in enumerate(self.data):  # Unpack images and filenames
                 noisy_batch = self.add_noise(batch)
-                self.save_images(noisy_batch, self.step, i)
+                self.save_images(noisy_batch, filenames, self.step)
+                i += 1
 
+            # Prepare for the next step
             input_path = os.path.join(self.output_folder, f'step_{self.step}')
             dataset = CatImagesDataset(directory=input_path, transform=self.transform)
             self.data = DataLoader(dataset, batch_size=32, shuffle=False)
