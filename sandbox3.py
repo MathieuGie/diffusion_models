@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 
-epochs = 100
+epochs = 500
 size = 20
 batches = 128
 noising_steps = 50
@@ -129,7 +129,6 @@ class CNN(pl.LightningModule):
 
                 pil_image = TF.to_pil_image(image)
 
-
                 image_path = os.path.join(step_folder, f"image_{i}.png")
                 pil_image.save(image_path, inplace=True)
                 i+=1
@@ -139,7 +138,7 @@ class CNN(pl.LightningModule):
 
 
 class DenoisingDataset(Dataset):
-    def __init__(self, base_dir, transform=None, file_list=None, subset_fraction=1):
+    def __init__(self, base_dir, transform=None, file_list=None, subset_fraction=0.7):
         self.base_dir = base_dir
         self.transform = transform
 
@@ -155,7 +154,8 @@ class DenoisingDataset(Dataset):
                     file_list.extend(os.listdir(step_dir))
 
         # Iterate over all noising steps except the first one (step_0)
-        for step in range(1, 13):
+        for step in range(1, noising_steps+1):
+            print("step:", step)
             current_step_dir = os.path.join(base_dir, f'step_{step}')
             previous_step_dir = os.path.join(base_dir, f'step_{step-1}')
 
@@ -184,6 +184,26 @@ class DenoisingDataset(Dataset):
         if self.transform:
             more_noisy_image = self.transform(more_noisy_image)
             less_noisy_image = self.transform(less_noisy_image)
+
+        """
+        pil_image = TF.to_pil_image(more_noisy_image)
+        pil_image2 = TF.to_pil_image(less_noisy_image)
+
+        # Plotting the images
+        plt.figure(figsize=(12, 6))
+
+        plt.subplot(1, 2, 1)
+        plt.imshow(pil_image)
+        plt.title("More Noisy Image")
+        plt.axis('off')  # To turn off axes for image plot
+
+        plt.subplot(1, 2, 2)
+        plt.imshow(pil_image2)
+        plt.title("Less Noisy Image")
+        plt.axis('off')
+
+        plt.show()
+        """
 
         step_tensor = torch.zeros((1,1,1))
         step_tensor[0,0,0]=step
@@ -232,6 +252,10 @@ trainer = pl.Trainer(max_epochs=epochs, accelerator="mps", logger=mlf_logger, lo
 trainer.fit(model, dataloader_train, dataloader_test)
 
 
+
+
+
+"""
 #GENERATE NEW IMAGES
 
 folder_name = "generated_images"
@@ -270,3 +294,4 @@ for i in range(noising_steps):
 
     image_path = os.path.join(folder_name, f"image_{i}.png")
     pil_image.save(image_path, inplace=True)
+"""
