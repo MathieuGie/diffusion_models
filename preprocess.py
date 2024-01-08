@@ -17,9 +17,9 @@ def resize_images(folder, output_folder, size=(20, 20)):
             img.save(os.path.join(output_folder, filename))
 
 # Define the path to the folder containing the images
-source_folder = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00'
+source_folder = os.getcwd() + '/dataset/CAT_00'
 # Define the path to the folder where resized images will be saved
-destination_folder = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_treated'
+destination_folder = os.getcwd() + '/dataset/CAT_00_treated'
 
 # Call the function with the updated folder paths
 resize_images(source_folder, destination_folder)

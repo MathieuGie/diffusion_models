@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 
-epochs = 100
+epochs = 500
 size = 20
 batches = 128
 noising_steps = 50
@@ -109,7 +109,7 @@ class CNN(pl.LightningModule):
             i=0
             
             if not os.path.exists('predictions'):
-                os.makedirs('predictions', inplace=True)
+                os.makedirs('predictions')
             step_folder = os.path.join('predictions', f'epoch_{self.epochh}')
 
             os.makedirs(step_folder, exist_ok=True)
@@ -197,8 +197,8 @@ transform = transforms.Compose([
 ])
 
 
-dir_images = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_noisy/step_0'
-dir_all =  '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_noisy'
+dir_images = os.getcwd() + '/dataset/CAT_00_noisy/step_0'
+dir_all =  os.getcwd() + '/dataset/CAT_00_noisy'
 
 image_files = os.listdir(dir_images)
 random.shuffle(image_files)
@@ -211,8 +211,13 @@ test_dataset = DenoisingDataset(dir_all, transform, file_list=test_files)
 dataloader_train = DataLoader(train_dataset, batch_size=batches, shuffle=True)
 dataloader_test = DataLoader(test_dataset, batch_size=batches, shuffle=True)
 
-#Devise:
-if not torch.backends.mps.is_available():
+#Device:
+if torch.backends.mps.is_available():
+    mps_device = torch.device("mps")
+    print("Using Device: ", mps_device)
+
+else:
+
     if not torch.backends.mps.is_built():
         print("MPS not available because the current PyTorch install was not "
               "built with MPS enabled.")
@@ -220,15 +225,25 @@ if not torch.backends.mps.is_available():
         print("MPS not available because the current MacOS version is not 12.3+ "
               "and/or you do not have an MPS-enabled device on this machine.")
 
-else:
-    mps_device = torch.device("mps")
+    if torch.cuda.is_available():
+        mps_device = torch.device("cuda")
+        print("Using device: ", mps_device)
+
+    else:
+        mps_device = torch.device("cpu")
+        print("Using device: ", mps_device)
 
 model = CNN()
 model.to(mps_device)
 
 mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
 
-trainer = pl.Trainer(max_epochs=epochs, accelerator="mps", logger=mlf_logger, log_every_n_steps=1)
+if mps_device == torch.device("mps"):
+    trainer = pl.Trainer(max_epochs=epochs, accelerator="gpu", logger=mlf_logger, log_every_n_steps=1)
+elif mps_device == torch.device("cuda"):
+    trainer = pl.Trainer(max_epochs=epochs, accelerator="gpu", logger=mlf_logger, log_every_n_steps=1)
+else:
+    trainer = pl.Trainer(max_epochs=epochs, accelerator="cpu", logger=mlf_logger, log_every_n_steps=1)
 trainer.fit(model, dataloader_train, dataloader_test)
 
 
@@ -241,7 +256,7 @@ image = torch.rand((3,size,size))
 step=1
 
 # Path to the 'step_20' folder
-step_20_folder = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_noisy/step_20'  # Update this path to your actual folder path
+step_20_folder = os.getcwd() + '/dataset/CAT_00_noisy/step_20'  # Update this path to your actual folder path
 
 # Get the list of image files in the folder
 image_files = sorted([f for f in os.listdir(step_20_folder) if f.endswith('.jpg')])

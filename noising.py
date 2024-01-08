@@ -95,8 +95,8 @@ transformations = transforms.Compose([
 ])
 
 
-input_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_treated'
-output_path = '../CAT_00_noisy'
+input_path = os.getcwd() + '/dataset/CAT_00_treated'
+output_path = os.getcwd() + '/dataset/CAT_00_noisy'
 
 forward_diff = ForwardDiffusion(transformations, input_path, output_path, T)
 forward_diff.run(T)
