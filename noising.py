@@ -6,7 +6,8 @@ from torchvision.utils import save_image
 from PIL import Image
 import os
 
-T=50
+T=100
+beta_max = 0.5
 
 class CatImagesDataset(Dataset):
 
@@ -29,7 +30,7 @@ class CatImagesDataset(Dataset):
 
 class ForwardDiffusion:
 
-    def __init__(self, transform, input_path, output_folder, T):
+    def __init__(self, transform, input_path, output_folder, T, beta_max):
 
         self.transform=transform
 
@@ -37,10 +38,11 @@ class ForwardDiffusion:
         self.data = DataLoader(cat_dataset, batch_size=32, shuffle=False)
 
         self.output_folder = output_folder
-        self.beta = 0.0001
+        self.beta = 0
         self.step = 1
 
         self.T = T
+        self.beta_max = beta_max
 
         self.save_original_images(input_path, output_folder)
 
@@ -58,11 +60,11 @@ class ForwardDiffusion:
                 save_image(image, os.path.join(step_0_folder, filename))
 
     def add_noise(self, inputs):
-        noise = torch.randn_like(inputs) * np.sqrt(self.beta)
+        noise = torch.randn(inputs.shape) * np.sqrt(self.beta)
         return np.clip(np.sqrt(1-self.beta)* inputs + noise, 0, 1)
     
     def update_beta(self, step):
-        self.beta = 0.0199/self.T *step +0.0001
+        self.beta = self.beta_max/self.T *step +0.0001
 
     def save_images(self, images, filenames, step):
         step_folder = os.path.join(self.output_folder, f'step_{step}')
@@ -98,5 +100,5 @@ transformations = transforms.Compose([
 input_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_treated'
 output_path = '../CAT_00_noisy'
 
-forward_diff = ForwardDiffusion(transformations, input_path, output_path, T)
+forward_diff = ForwardDiffusion(transformations, input_path, output_path, T, beta_max)
 forward_diff.run(T)
