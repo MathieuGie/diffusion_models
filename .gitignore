@@ -167,3 +167,6 @@ dataset.OLD/
 predictions/
 ml-runs/
 
+# Checkpoints
+encoder.chkpt
+decoder.chkpt

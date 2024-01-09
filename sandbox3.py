@@ -15,7 +15,7 @@ import torchvision.transforms.functional as TF
 epochs = 500
 size = 20
 batches = 128
-noising_steps = 50
+noising_steps = 60
 
 
 class CNN(pl.LightningModule):
