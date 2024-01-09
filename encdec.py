@@ -22,21 +22,21 @@ class Encoder(pl.LightningModule):
         
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=8, padding=1, stride=2)
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=6, padding=1, stride=2)
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=6, padding=1, stride=2)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=4, padding=1, stride=2)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, padding=1, stride=2)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=4, padding=1, stride=2)
         self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=5, padding=1, stride=2)
-        self.conv5 = nn.Conv2d(in_channels=256, out_channels=400, kernel_size=11)
+        self.conv5 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=12)
 
     def forward(self, x):
 
-        x = self.relu(self.conv1(x))#98
+        x = self.relu(self.conv1(x))#100
         #print(x.shape)
-        x = self.relu(self.conv2(x))#48
+        x = self.relu(self.conv2(x))#50
         #print(x.shape)
-        x = self.relu(self.conv3(x))#23
+        x = self.relu(self.conv3(x))#25
         #print(x.shape)
-        x = self.relu(self.conv4(x))#11
+        x = self.relu(self.conv4(x))#12
         #print(x.shape)
         x = self.conv5(x)#1
 
@@ -50,22 +50,22 @@ class Decoder(pl.LightningModule):
         
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
-        self.deconv1 = nn.ConvTranspose2d(in_channels=400, out_channels=256, kernel_size=9, padding=1, output_padding=1)
-        self.deconv2 = nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=8, stride=2, padding=1, output_padding=1)
-        self.deconv3 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=8, stride=2, padding=1, output_padding=1)
-        self.deconv4 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=6, stride=2, padding=1, output_padding=1)
-        self.deconv5 = nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=8, stride=2, padding=1)
+        self.deconv1 = nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=12, output_padding=0)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=5, stride=2, padding=1, output_padding=0)
+        self.deconv3 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=4, stride=2, padding=1, output_padding=0)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=4, stride=2, padding=1, output_padding=0)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=4, stride=2, padding=1)
 
 
     def forward(self, x):
 
-        x = self.relu(self.deconv1(x)) #8
+        x = self.relu(self.deconv1(x)) #12
         #print(x.shape)
-        x = self.relu(self.deconv2(x))#21
+        x = self.relu(self.deconv2(x))#25
         #print(x.shape)
-        x = self.relu(self.deconv3(x))#47
+        x = self.relu(self.deconv3(x))#50
         #print(x.shape)
-        x = self.relu(self.deconv4(x))#97
+        x = self.relu(self.deconv4(x))#100
         #print(x.shape)
         x = self.deconv5(x)#200
 
