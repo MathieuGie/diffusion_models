@@ -7,7 +7,7 @@ from PIL import Image
 import os
 
 T=100
-beta_max = 0.5
+beta_max = 0.2
 
 class CatImagesDataset(Dataset):
 
@@ -64,7 +64,7 @@ class ForwardDiffusion:
         return np.clip(np.sqrt(1-self.beta)* inputs + noise, 0, 1)
     
     def update_beta(self, step):
-        self.beta = self.beta_max/self.T *step +0.0001
+        self.beta = np.clip(self.beta_max/self.T *step +0.0001, 0, 1)
 
     def save_images(self, images, filenames, step):
         step_folder = os.path.join(self.output_folder, f'step_{step}')
@@ -79,6 +79,14 @@ class ForwardDiffusion:
             print(self.beta)
 
             for i, (batch, filenames) in enumerate(self.data):  # Unpack images and filenames
+
+                #Renormalise
+                diff_mean = 0.5 - torch.mean(batch)
+                diff_std = 0.2887/torch.std(batch)
+                batch=np.clip((batch+diff_mean)*diff_std, 0, 1)
+
+                #print(torch.mean(batch), torch.std(batch))
+
                 noisy_batch = self.add_noise(batch)
                 self.save_images(noisy_batch, filenames, self.step)
                 i += 1
