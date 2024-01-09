@@ -23,6 +23,7 @@ class CNN(pl.LightningModule):
         super().__init__()
 
         self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
         # Encoder layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=512, kernel_size=4, padding=1, stride=2)
         #self.maxpolling1 = nn.MaxPool2d(padding=1, kernel_size=2)
@@ -61,7 +62,7 @@ class CNN(pl.LightningModule):
         # Decoding
         x = self.relu(self.linear1(x))
         #x = self.relu(self.linear2(x))
-        x = self.linear3(x)
+        x = self.sigmoid(self.linear3(x))
 
         return x
     
