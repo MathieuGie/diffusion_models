@@ -22,8 +22,8 @@ class Encoder(pl.LightningModule):
         
         self.relu = nn.ReLU()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=100, kernel_size=22, padding=1, stride=4)
-        self.conv2 = nn.Conv2d(in_channels=100, out_channels=300, kernel_size=20, padding=1, stride=4)
-        self.conv3 = nn.Conv2d(in_channels=300, out_channels=600, kernel_size=10, padding=1, stride=1)
+        self.conv2 = nn.Conv2d(in_channels=100, out_channels=250, kernel_size=20, padding=1, stride=4)
+        self.conv3 = nn.Conv2d(in_channels=250, out_channels=600, kernel_size=10, padding=1, stride=1)
 
     def forward(self, x):
 
@@ -40,9 +40,10 @@ class Decoder(pl.LightningModule):
         super().__init__()
         
         self.relu1 = nn.ReLU()
-        self.deconv1 = nn.ConvTranspose2d(in_channels=600, out_channels=300, kernel_size=25, padding=1, output_padding=1)
-        self.deconv2 = nn.ConvTranspose2d(in_channels=300, out_channels=100, kernel_size=23, padding=1, output_padding=1, stride=3)
-        self.deconv3 = nn.ConvTranspose2d(in_channels=100, out_channels=3, kernel_size=21, padding=1, output_padding=1, stride=2)
+        self.sigmoid = nn.Sigmoid()
+        self.deconv1 = nn.ConvTranspose2d(in_channels=600, out_channels=200, kernel_size=25, padding=1, output_padding=1)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=200, out_channels=50, kernel_size=23, padding=1, output_padding=1, stride=3)
+        self.deconv3 = nn.ConvTranspose2d(in_channels=50, out_channels=3, kernel_size=21, padding=1, output_padding=1, stride=2)
 
     def forward(self, x):
 
@@ -54,7 +55,7 @@ class Decoder(pl.LightningModule):
 
         #print("end of decoder", x.shape)
 
-        return x
+        return self.sigmoid(x)
     
 class Encdec(pl.LightningModule):
     def __init__(self,):
@@ -177,5 +178,5 @@ print("model init done")
 
 mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
 
-#trainer = pl.Trainer(max_epochs=epochs, accelerator="mps", logger=mlf_logger, log_every_n_steps=1)
-#trainer.fit(model, dataloader_train, dataloader_test)
+trainer = pl.Trainer(max_epochs=epochs, accelerator="mps", logger=mlf_logger, log_every_n_steps=1)
+trainer.fit(model, dataloader_train, dataloader_test)

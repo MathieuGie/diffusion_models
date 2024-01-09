@@ -6,7 +6,7 @@ from torchvision.utils import save_image
 from PIL import Image
 import os
 
-T=100
+T=10
 beta_max = 0.02
 
 class CatImagesDataset(Dataset):
@@ -39,7 +39,7 @@ class ForwardDiffusion:
 
         self.output_folder = output_folder
         self.beta = 0
-        self.step = 0
+        self.step = 1
 
         self.T = T
         self.beta_max = beta_max

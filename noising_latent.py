@@ -138,7 +138,6 @@ transformations = transforms.Compose([
     transforms.ToTensor(),  # Convert the image to a PyTorch Tensor
 ])
 
-
 input_path = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_treated'
 output_path = '../CAT_00_latent_noisy'
 
