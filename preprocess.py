@@ -25,3 +25,4 @@ destination_folder = os.getcwd() + '/dataset/CAT_00_treated'
 resize_images(source_folder, destination_folder)
 
 
+

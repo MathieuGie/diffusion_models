@@ -25,7 +25,8 @@ class CatImagesDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         return image, self.image_files[idx]
-    
+   
+
 
 class ForwardDiffusion:
 
