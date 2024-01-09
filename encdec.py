@@ -126,9 +126,6 @@ class ImageDataset(Dataset):
 
         self.all_images = random.sample(self.all_images, int(len(self.all_images) * subset_fraction))
 
-        print("init done")
-        print(self.all_images[0])
-
     def __len__(self):
         return len(self.all_images)
 
@@ -148,7 +145,7 @@ transform = transforms.Compose([
 ])
 
 dir = '/Users/mathieugierski/Library/CloudStorage/OneDrive-Personnel/Diffusion/CAT_00_treated'
-print("hello")
+
 image_files = os.listdir(dir)
 random.shuffle(image_files)
 

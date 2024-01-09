@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 from lightning.pytorch.loggers import MLFlowLogger
 from encdec import Encoder
 
-T=50
+T=10
 beta_max = 0.2
 
 class CatImagesDataset(Dataset):
