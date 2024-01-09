@@ -163,3 +163,7 @@ cython_debug/
 # Python environment
 diff_env/
 env_diff/
+bear/
+dataset/
+.DS_Store
+predictions/

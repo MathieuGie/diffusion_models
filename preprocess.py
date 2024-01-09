@@ -1,6 +1,6 @@
 from PIL import Image
 import os
-
+# Rewrite function within class taking size as a parameter such that we can 
 def resize_images(folder, output_folder, size=(256, 256)):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
