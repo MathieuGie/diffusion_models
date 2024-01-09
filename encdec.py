@@ -21,37 +21,53 @@ class Encoder(pl.LightningModule):
         super().__init__()
         
         self.relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=100, kernel_size=22, padding=1, stride=4)
-        self.conv2 = nn.Conv2d(in_channels=100, out_channels=250, kernel_size=20, padding=1, stride=4)
-        self.conv3 = nn.Conv2d(in_channels=250, out_channels=600, kernel_size=10, padding=1, stride=1)
+        self.sigmoid = nn.Sigmoid()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=8, padding=1, stride=2)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=6, padding=1, stride=2)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=6, padding=1, stride=2)
+        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=5, padding=1, stride=2)
+        self.conv5 = nn.Conv2d(in_channels=256, out_channels=400, kernel_size=11)
 
     def forward(self, x):
 
-        x = self.relu(self.conv1(x))
-        x = self.relu(self.conv2(x))
-        x = self.conv3(x)
+        x = self.relu(self.conv1(x))#98
+        #print(x.shape)
+        x = self.relu(self.conv2(x))#48
+        #print(x.shape)
+        x = self.relu(self.conv3(x))#23
+        #print(x.shape)
+        x = self.relu(self.conv4(x))#11
+        #print(x.shape)
+        x = self.conv5(x)#1
 
         #print("end of encoder", x.shape)
 
-        return x
+        return self.sigmoid(x)
     
 class Decoder(pl.LightningModule):
     def __init__(self):
         super().__init__()
         
-        self.relu1 = nn.ReLU()
+        self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
-        self.deconv1 = nn.ConvTranspose2d(in_channels=600, out_channels=200, kernel_size=25, padding=1, output_padding=1)
-        self.deconv2 = nn.ConvTranspose2d(in_channels=200, out_channels=50, kernel_size=23, padding=1, output_padding=1, stride=3)
-        self.deconv3 = nn.ConvTranspose2d(in_channels=50, out_channels=3, kernel_size=21, padding=1, output_padding=1, stride=2)
+        self.deconv1 = nn.ConvTranspose2d(in_channels=400, out_channels=256, kernel_size=9, padding=1, output_padding=1)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=8, stride=2, padding=1, output_padding=1)
+        self.deconv3 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=8, stride=2, padding=1, output_padding=1)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=6, stride=2, padding=1, output_padding=1)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=8, stride=2, padding=1)
+
 
     def forward(self, x):
 
-        x = self.relu1(self.deconv1(x))
+        x = self.relu(self.deconv1(x)) #8
         #print(x.shape)
-        x = self.relu1(self.deconv2(x))
+        x = self.relu(self.deconv2(x))#21
         #print(x.shape)
-        x = self.deconv3(x)
+        x = self.relu(self.deconv3(x))#47
+        #print(x.shape)
+        x = self.relu(self.deconv4(x))#97
+        #print(x.shape)
+        x = self.deconv5(x)#200
 
         #print("end of decoder", x.shape)
 
@@ -61,10 +77,10 @@ class Encdec(pl.LightningModule):
     def __init__(self,):
         super().__init__()
 
+        self.epochh=0
 
         self.encoder = Encoder().to(mps_device)
         self.decoder = Decoder().to(mps_device)
-
 
     def forward(self, x):
         
@@ -103,6 +119,24 @@ class Encdec(pl.LightningModule):
     def on_train_epoch_start(self):
         torch.save(self.encoder.state_dict(), "encoder.chkpt")
         torch.save(self.decoder.state_dict(), "decoder.chkpt")
+
+        with torch.no_grad():
+
+            image = test_dataset[0].to(mps_device)
+            
+            if not os.path.exists('predictions_encdec'):
+                os.makedirs('predictions_encdec')
+
+            image=self.encoder(image)
+            image=self.decoder(image)
+
+            pil_image = TF.to_pil_image(image)
+
+            image_path = os.path.join('predictions_encdec', f"image_{self.epochh}.png")
+            pil_image.save(image_path, inplace=True)
+            
+
+        self.epochh+=1
         self.train()
     
 
