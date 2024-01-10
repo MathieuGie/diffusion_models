@@ -5,6 +5,7 @@ def resize_images(folder, output_folder, size=(200, 200)):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
+    id = 0
     for filename in os.listdir(folder):
         # Check if the file is a JPEG image
         if filename.endswith('.jpg') and not filename.startswith('.'):
@@ -14,7 +15,8 @@ def resize_images(folder, output_folder, size=(200, 200)):
 
             print(img.size)
             # Save the resized image to the output folder
-            img.save(os.path.join(output_folder, filename))
+            img.save(os.path.join(output_folder, "image_"+str(id)+".jpg"))
+            id+=1
 
 # Define the path to the folder containing the images
 source_folder = os.getcwd() + '/dataset/CAT_00'

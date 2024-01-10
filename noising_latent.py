@@ -60,7 +60,7 @@ class ForwardDiffusion:
 
         self.output_folder = output_folder
         self.beta = 0.0001
-        self.step = 0
+        self.step = 1
 
         self.T = T
         self.beta_max = beta_max

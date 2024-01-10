@@ -17,6 +17,14 @@ epochs = 1000
 PARALLEL_TRAINING = False
 
 
+a=8
+b=16
+c=32
+d=64
+e=128
+f=256#
+g=512#
+
 class Encoder(pl.LightningModule):
     def __init__(self):
         super().__init__()
@@ -24,25 +32,25 @@ class Encoder(pl.LightningModule):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=4, padding=1, stride=2)
-        self.norm1 = nn.BatchNorm2d(16)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=a, kernel_size=4, padding=1, stride=2)
+        self.norm1 = nn.BatchNorm2d(a)
 
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=4, padding=1, stride=2)
-        self.norm2 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(in_channels=a, out_channels=b, kernel_size=4, padding=1, stride=2)
+        self.norm2 = nn.BatchNorm2d(b)
 
-        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, padding=1, stride=2)
-        self.norm3 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(in_channels=b, out_channels=c, kernel_size=4, padding=1, stride=2)
+        self.norm3 = nn.BatchNorm2d(c)
 
-        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1, stride=2)
-        self.norm4 = nn.BatchNorm2d(128)
+        self.conv4 = nn.Conv2d(in_channels=c, out_channels=d, kernel_size=3, padding=1, stride=2)
+        self.norm4 = nn.BatchNorm2d(d)
 
-        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1, stride=2)
-        self.norm5 = nn.BatchNorm2d(256)
+        self.conv5 = nn.Conv2d(in_channels=d, out_channels=e, kernel_size=3, padding=1, stride=2)
+        self.norm5 = nn.BatchNorm2d(e)
 
-        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, stride=2)
-        self.norm6 = nn.BatchNorm2d(512)
+        self.conv6 = nn.Conv2d(in_channels=e, out_channels=f, kernel_size=3, padding=1, stride=2)
+        self.norm6 = nn.BatchNorm2d(f)
 
-        self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=4)
+        self.conv7 = nn.Conv2d(in_channels=f, out_channels=g, kernel_size=4)
 
     def forward(self, x):
 
@@ -56,9 +64,9 @@ class Encoder(pl.LightningModule):
         #print(x.shape)
         x = self.relu(self.norm5(self.conv5(x)))#7
         #print(x.shape)
-        x = self.relu(self.norm6(self.conv6(x)))#4
+        #x = self.relu(self.norm6(self.conv6(x)))#4
 
-        x = self.relu(self.conv7(x))
+        #x = self.relu(self.conv7(x))
 
         #print("end of encoder", x.shape)
 
@@ -71,31 +79,31 @@ class Decoder(pl.LightningModule):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-        self.deconv1 = nn.ConvTranspose2d(in_channels=1024, out_channels=512, kernel_size=4)
-        self.norm1 = nn.BatchNorm2d(512)
+        self.deconv1 = nn.ConvTranspose2d(in_channels=g, out_channels=f, kernel_size=4)
+        self.norm1 = nn.BatchNorm2d(f)
 
-        self.deconv2 = nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=3, padding=1, stride=2)
-        self.norm2 = nn.BatchNorm2d(256)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=f, out_channels=e, kernel_size=3, padding=1, stride=2)
+        self.norm2 = nn.BatchNorm2d(e)
 
-        self.deconv3 = nn.ConvTranspose2d(in_channels=256, out_channels=124, kernel_size=3, padding=1, stride=2)
-        self.norm3 = nn.BatchNorm2d(124)
+        self.deconv3 = nn.ConvTranspose2d(in_channels=e, out_channels=d, kernel_size=3, padding=1, stride=2)
+        self.norm3 = nn.BatchNorm2d(d)
 
-        self.deconv4 = nn.ConvTranspose2d(in_channels=124, out_channels=64, kernel_size=3, padding=1, stride=2)
-        self.norm4 = nn.BatchNorm2d(64)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=d, out_channels=c, kernel_size=3, padding=1, stride=2)
+        self.norm4 = nn.BatchNorm2d(c)
 
-        self.deconv5 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=4, padding=1, stride=2)
-        self.norm5 = nn.BatchNorm2d(32)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=c, out_channels=b, kernel_size=4, padding=1, stride=2)
+        self.norm5 = nn.BatchNorm2d(b)
 
-        self.deconv6 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=4, padding=1, stride=2)
-        self.norm6 = nn.BatchNorm2d(16)
+        self.deconv6 = nn.ConvTranspose2d(in_channels=b, out_channels=a, kernel_size=4, padding=1, stride=2)
+        self.norm6 = nn.BatchNorm2d(a)
 
-        self.deconv7 = nn.ConvTranspose2d(in_channels=16, out_channels=3, kernel_size=4, padding=1, stride=2)
+        self.deconv7 = nn.ConvTranspose2d(in_channels=a, out_channels=3, kernel_size=4, padding=1, stride=2)
 
     def forward(self, x):
 
-        x = self.relu(self.norm1(self.deconv1(x)))
+        #x = self.relu(self.norm1(self.deconv1(x)))
         #print(x.shape)
-        x = self.relu(self.norm2(self.deconv2(x))) 
+        #x = self.relu(self.norm2(self.deconv2(x))) 
         #print(x.shape)
         x = self.relu(self.norm3(self.deconv3(x))) 
         #print(x.shape)
@@ -108,7 +116,7 @@ class Decoder(pl.LightningModule):
         x = self.deconv7(x)
         #print("end of decoder", x.shape)
 
-        return x
+        return self.sigmoid(x)
     
 class Encdec(pl.LightningModule):
     def __init__(self,):
@@ -155,23 +163,23 @@ class Encdec(pl.LightningModule):
         return optimizer
     
     def on_train_epoch_start(self):
-        torch.save(self.encoder.state_dict(), "encoder.chkpt")
-        torch.save(self.decoder.state_dict(), "decoder.chkpt")
+        torch.save(self.encoder.state_dict(), "chkpt/bigger_encoder.chkpt")
+        torch.save(self.decoder.state_dict(), "chkpt/bigger_decoder.chkpt")
         
         with torch.no_grad():
 
             image = test_dataset[0].to(mps_device)
             image = torch.reshape(image, (1, image.shape[0], image.shape[1], image.shape[2]))
             
-            if not os.path.exists('predictions_encdec'):
-                os.makedirs('predictions_encdec')
+            if not os.path.exists('predictions_bigger_encdec'):
+                os.makedirs('predictions_bigger_encdec')
 
             image=self.encoder(image)
             image=self.decoder(image)
 
             pil_image = TF.to_pil_image(image[0,:,:,:])
 
-            image_path = os.path.join('predictions_encdec', f"image_{self.epochh}.png")
+            image_path = os.path.join('predictions_bigger_encdec', f"image_{self.epochh}.png")
             pil_image.save(image_path, inplace=True)
             
 
@@ -228,8 +236,8 @@ train_files, test_files = train_test_split(image_files, test_size=0.3)  # Adjust
 train_dataset = ImageDataset(dir, transform, file_list=train_files)
 test_dataset = ImageDataset(dir, transform, file_list=test_files)
 
-dataloader_train = DataLoader(train_dataset, batch_size=batches, shuffle=True)
-dataloader_test = DataLoader(test_dataset, batch_size=batches, shuffle=True)
+dataloader_train = DataLoader(train_dataset, batch_size=batches, shuffle=True, num_workers=19) # Added num_workers to avoid bottleneck
+dataloader_test = DataLoader(test_dataset, batch_size=batches, shuffle=True, num_workers=19)
 
 print("before mps device")
 #Device:
@@ -257,6 +265,7 @@ else:
 
 model = Encdec()
 model.to(mps_device)
+#torch.set_float32_matmul_precision('medium') # Only if Tensor cores is used; Remember to set back to default after training
 
 print("model init done")
 

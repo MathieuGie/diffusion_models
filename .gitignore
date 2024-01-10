@@ -161,12 +161,15 @@ cython_debug/
 #
 # Server run modified files
 archive/
-env_diff/
+env_diff
 dataset
 dataset.OLD/
 predictions/
+predictions_encdec/
+predictions_bigger_encdec
 ml-runs/
 
 # Checkpoints
+chkpt
 encoder.chkpt
 decoder.chkpt
