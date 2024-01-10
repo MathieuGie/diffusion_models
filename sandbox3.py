@@ -110,7 +110,7 @@ class CNN(pl.LightningModule):
             i=0
             
             if not os.path.exists('predictions'):
-                os.makedirs('predictions', inplace=True)
+                os.makedirs('predictions')
             step_folder = os.path.join('predictions', f'epoch_{self.epochh}')
 
             os.makedirs(step_folder, exist_ok=True)

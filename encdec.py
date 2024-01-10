@@ -20,29 +20,45 @@ class Encoder(pl.LightningModule):
     def __init__(self):
         super().__init__()
         
+
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=4, padding=1, stride=2)
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, padding=1, stride=2)
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=4, padding=1, stride=2)
-        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=5, padding=1, stride=2)
-        self.conv5 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=12)
 
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=4, padding=1, stride=2)
+        self.norm1 = nn.BatchNorm2d(16)
+
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=4, padding=1, stride=2)
+        self.norm2 = nn.BatchNorm2d(32)
+
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, padding=1, stride=2)
+        self.norm3 = nn.BatchNorm2d(64)
+
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1, stride=2)
+        self.norm4 = nn.BatchNorm2d(128)
+
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=192, kernel_size=3, padding=1, stride=2)
+        self.norm5 = nn.BatchNorm2d(192)
+
+        self.conv6 = nn.Conv2d(in_channels=192, out_channels=256, kernel_size=7)
+
+  
     def forward(self, x):
+        
+        x = self.relu(self.norm1(self.conv1(x)))#100
+        print(x.shape)
+        x = self.relu(self.norm2(self.conv2(x)))#50
+        print(x.shape)
+        x = self.relu(self.norm3(self.conv3(x)))#25
+        print(x.shape)
+        x = self.relu(self.norm4(self.conv4(x)))#13
+        print(x.shape)
+        x = self.relu(self.conv5(x))#6
+        print(x.shape)
+        x = self.conv6(x)
 
-        x = self.relu(self.conv1(x))#100
-        #print(x.shape)
-        x = self.relu(self.conv2(x))#50
-        #print(x.shape)
-        x = self.relu(self.conv3(x))#25
-        #print(x.shape)
-        x = self.relu(self.conv4(x))#12
-        #print(x.shape)
-        x = self.conv5(x)#1
+        print("end of encoder", x.shape)
 
-        #print("end of encoder", x.shape)
-
-        return self.sigmoid(x)
+        return x
     
 class Decoder(pl.LightningModule):
     def __init__(self):
@@ -50,28 +66,42 @@ class Decoder(pl.LightningModule):
         
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
-        self.deconv1 = nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=12, output_padding=0)
-        self.deconv2 = nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=5, stride=2, padding=1, output_padding=0)
-        self.deconv3 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=4, stride=2, padding=1, output_padding=0)
-        self.deconv4 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=4, stride=2, padding=1, output_padding=0)
-        self.deconv5 = nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=4, stride=2, padding=1)
+
+        self.deconv1 = nn.ConvTranspose2d(in_channels=256, out_channels=192, kernel_size=7)
+        self.norm1 = nn.BatchNorm2d(192)
+
+        self.deconv2 = nn.ConvTranspose2d(in_channels=192, out_channels=128, kernel_size=3, stride=2, padding=1)
+        self.norm2 = nn.BatchNorm2d(128)
+
+        self.deconv3 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=3, stride=2, padding=1)
+        self.norm3 = nn.BatchNorm2d(64)
+
+        self.deconv4 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=4, stride=2, padding=1)
+        self.norm4 = nn.BatchNorm2d(32)
+
+        self.deconv5 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=4, stride=2, padding=1)
+        self.norm5 = nn.BatchNorm2d(16)
+
+        self.deconv6 = nn.ConvTranspose2d(in_channels=16, out_channels=3, kernel_size=4, stride=2, padding=1)
 
 
     def forward(self, x):
 
-        x = self.relu(self.deconv1(x)) #12
+        x = self.relu(self.norm1(self.deconv1(x))) #6
         #print(x.shape)
-        x = self.relu(self.deconv2(x))#25
+        x = self.relu(self.norm2(self.deconv2(x))) #12
         #print(x.shape)
-        x = self.relu(self.deconv3(x))#50
+        x = self.relu(self.norm3(self.deconv3(x))) #25
         #print(x.shape)
-        x = self.relu(self.deconv4(x))#100
+        x = self.relu(self.norm4(self.deconv4(x))) #50
         #print(x.shape)
-        x = self.deconv5(x)#200
+        x = self.relu(self.norm5(self.deconv5(x)))#100
 
+        x = self.deconv6(x)
         #print("end of decoder", x.shape)
 
-        return self.sigmoid(x)
+        return x
+
     
 class Encdec(pl.LightningModule):
     def __init__(self,):
@@ -123,6 +153,7 @@ class Encdec(pl.LightningModule):
         with torch.no_grad():
 
             image = test_dataset[0].to(mps_device)
+            image = torch.reshape(image, (1, image.shape[0], image.shape[1], image.shape[2]))
             
             if not os.path.exists('predictions_encdec'):
                 os.makedirs('predictions_encdec')
@@ -130,7 +161,7 @@ class Encdec(pl.LightningModule):
             image=self.encoder(image)
             image=self.decoder(image)
 
-            pil_image = TF.to_pil_image(image)
+            pil_image = TF.to_pil_image(image[0,:,:,:])
 
             image_path = os.path.join('predictions_encdec', f"image_{self.epochh}.png")
             pil_image.save(image_path, inplace=True)
