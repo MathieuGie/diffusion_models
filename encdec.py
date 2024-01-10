@@ -38,12 +38,11 @@ class Encoder(pl.LightningModule):
         self.conv2 = nn.Conv2d(in_channels=a, out_channels=b, kernel_size=4, padding=1, stride=2)
         self.norm2 = nn.BatchNorm2d(b)
 
-        self.conv3 = nn.Conv2d(in_channels=b, out_channels=c, kernel_size=5, padding=1, stride=2)
+        self.conv3 = nn.Conv2d(in_channels=b, out_channels=c, kernel_size=4, padding=1, stride=2)
         self.norm3 = nn.BatchNorm2d(c)
 
-        self.conv4 = nn.Conv2d(in_channels=c, out_channels=d, kernel_size=11)
+        self.conv4 = nn.Conv2d(in_channels=c, out_channels=d, kernel_size=10)
         self.norm4 = nn.BatchNorm2d(d)
-
         #self.conv5 = nn.Conv2d(in_channels=d, out_channels=e, kernel_size=13)
         #self.norm5 = nn.BatchNorm2d(e)
 
@@ -56,18 +55,20 @@ class Encoder(pl.LightningModule):
     def forward(self, x):
         
         x = self.relu(self.norm1(self.conv1(x)))#66
-        #print(x.shape)
+        print(x.shape)
         x = self.relu(self.norm2(self.conv2(x)))#21
-        #print(x.shape)
+        print(x.shape)
         x = self.relu(self.norm3(self.conv3(x)))#6
-        #print(x.shape)
-        x = self.norm4(self.conv4(x))#1
-        #print(x.shape)
+        print(x.shape)
+        x = self.conv4(x)#1
+        print(x.shape)
         #x = self.relu(self.norm5(self.conv5(x)))#7
         #print(x.shape)
         #x = self.relu(self.norm6(self.conv6(x)))#4
 
-        #x = self.relu(self.conv7(x))
+        #x = self.relu(self.conv7(x)) 
+
+        #no batch norm at end!!!
 
         #print("end of encoder", x.shape)
 
@@ -90,10 +91,10 @@ class Decoder(pl.LightningModule):
         #self.deconv3 = nn.ConvTranspose2d(in_channels=e, out_channels=d, kernel_size=13)
         #self.norm3 = nn.BatchNorm2d(d)
 
-        self.deconv4 = nn.ConvTranspose2d(in_channels=d, out_channels=c, kernel_size=11)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=d, out_channels=c, kernel_size=10)
         self.norm4 = nn.BatchNorm2d(c)
 
-        self.deconv5 = nn.ConvTranspose2d(in_channels=c, out_channels=b, kernel_size=5, padding=1, stride=2)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=c, out_channels=b, kernel_size=4, padding=1, stride=2)
         self.norm5 = nn.BatchNorm2d(b)
 
         self.deconv6 = nn.ConvTranspose2d(in_channels=b, out_channels=a, kernel_size=4, padding=1, stride=2)
@@ -111,13 +112,13 @@ class Decoder(pl.LightningModule):
         #x = self.relu(self.norm3(self.deconv3(x))) 
         #print(x.shape)
         x = self.relu(self.norm4(self.deconv4(x))) 
-        #print(x.shape)
+        print(x.shape)
         x = self.relu(self.norm5(self.deconv5(x)))
-        #print(x.shape)
+        print(x.shape)
         x = self.relu(self.norm6(self.deconv6(x)))
-        #print(x.shape)
+        print(x.shape)
         x = self.deconv7(x)
-        #print("end of decoder", x.shape)
+        print("end of decoder", x.shape)
 
         return self.sigmoid(x)
 
@@ -238,6 +239,9 @@ train_files, test_files = train_test_split(image_files, test_size=0.3)  # Adjust
 #print(len(train_files))
 train_dataset = ImageDataset(dir, transform, file_list=train_files)
 test_dataset = ImageDataset(dir, transform, file_list=test_files)
+
+print("training set", len(train_dataset))
+print("test set", len(test_dataset))
 
 dataloader_train = DataLoader(train_dataset, batch_size=batches, shuffle=True)
 dataloader_test = DataLoader(test_dataset, batch_size=batches, shuffle=True)
