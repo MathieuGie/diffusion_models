@@ -13,7 +13,7 @@ from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 
 batches = 128
-epochs = 500
+epochs = 800
 
 
 class Encoder(pl.LightningModule):
@@ -36,27 +36,33 @@ class Encoder(pl.LightningModule):
         self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1, stride=2)
         self.norm4 = nn.BatchNorm2d(128)
 
-        self.conv5 = nn.Conv2d(in_channels=128, out_channels=192, kernel_size=3, padding=1, stride=2)
-        self.norm5 = nn.BatchNorm2d(192)
+        self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1, stride=2)
+        self.norm5 = nn.BatchNorm2d(256)
 
-        self.conv6 = nn.Conv2d(in_channels=192, out_channels=256, kernel_size=7)
+        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, stride=2)
+        self.norm6 = nn.BatchNorm2d(512)
+
+        self.conv7 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=4)
+        self.norm7 = nn.BatchNorm2d(1024)
 
   
     def forward(self, x):
         
         x = self.relu(self.norm1(self.conv1(x)))#100
-        print(x.shape)
+        #print(x.shape)
         x = self.relu(self.norm2(self.conv2(x)))#50
-        print(x.shape)
+        #print(x.shape)
         x = self.relu(self.norm3(self.conv3(x)))#25
-        print(x.shape)
+        #print(x.shape)
         x = self.relu(self.norm4(self.conv4(x)))#13
-        print(x.shape)
-        x = self.relu(self.conv5(x))#6
-        print(x.shape)
-        x = self.conv6(x)
+        #print(x.shape)
+        x = self.relu(self.norm5(self.conv5(x)))#7
+        #print(x.shape)
+        x = self.relu(self.norm6(self.conv6(x)))#4
 
-        print("end of encoder", x.shape)
+        x = self.relu(self.norm7(self.conv7(x)))
+
+        #print("end of encoder", x.shape)
 
         return x
     
@@ -67,37 +73,42 @@ class Decoder(pl.LightningModule):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-        self.deconv1 = nn.ConvTranspose2d(in_channels=256, out_channels=192, kernel_size=7)
-        self.norm1 = nn.BatchNorm2d(192)
+        self.deconv1 = nn.ConvTranspose2d(in_channels=1024, out_channels=512, kernel_size=4)
+        self.norm1 = nn.BatchNorm2d(512)
 
-        self.deconv2 = nn.ConvTranspose2d(in_channels=192, out_channels=128, kernel_size=3, stride=2, padding=1)
-        self.norm2 = nn.BatchNorm2d(128)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=3, padding=1, stride=2)
+        self.norm2 = nn.BatchNorm2d(256)
 
-        self.deconv3 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=3, stride=2, padding=1)
-        self.norm3 = nn.BatchNorm2d(64)
+        self.deconv3 = nn.ConvTranspose2d(in_channels=256, out_channels=124, kernel_size=3, padding=1, stride=2)
+        self.norm3 = nn.BatchNorm2d(124)
 
-        self.deconv4 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=4, stride=2, padding=1)
-        self.norm4 = nn.BatchNorm2d(32)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=124, out_channels=64, kernel_size=3, padding=1, stride=2)
+        self.norm4 = nn.BatchNorm2d(64)
 
-        self.deconv5 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=4, stride=2, padding=1)
-        self.norm5 = nn.BatchNorm2d(16)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=4, padding=1, stride=2)
+        self.norm5 = nn.BatchNorm2d(32)
 
-        self.deconv6 = nn.ConvTranspose2d(in_channels=16, out_channels=3, kernel_size=4, stride=2, padding=1)
+        self.deconv6 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=4, padding=1, stride=2)
+        self.norm6 = nn.BatchNorm2d(16)
+
+        self.deconv7 = nn.ConvTranspose2d(in_channels=16, out_channels=3, kernel_size=4, padding=1, stride=2)
 
 
     def forward(self, x):
 
-        x = self.relu(self.norm1(self.deconv1(x))) #6
+        x = self.relu(self.norm1(self.deconv1(x)))
         #print(x.shape)
-        x = self.relu(self.norm2(self.deconv2(x))) #12
+        x = self.relu(self.norm2(self.deconv2(x))) 
         #print(x.shape)
-        x = self.relu(self.norm3(self.deconv3(x))) #25
+        x = self.relu(self.norm3(self.deconv3(x))) 
         #print(x.shape)
-        x = self.relu(self.norm4(self.deconv4(x))) #50
+        x = self.relu(self.norm4(self.deconv4(x))) 
         #print(x.shape)
-        x = self.relu(self.norm5(self.deconv5(x)))#100
+        x = self.relu(self.norm5(self.deconv5(x)))
 
-        x = self.deconv6(x)
+        x = self.relu(self.norm6(self.deconv6(x)))
+
+        x = self.deconv7(x)
         #print("end of decoder", x.shape)
 
         return x
