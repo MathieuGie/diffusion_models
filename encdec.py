@@ -16,9 +16,9 @@ batches = 128
 epochs = 800
 
 a=124
-b=248
+b=620
 c=512#
-d=512
+d=1024
 e=122#
 f=48#
 g=56#
@@ -72,7 +72,7 @@ class Encoder(pl.LightningModule):
 
         #print("end of encoder", x.shape)
 
-        return torch.clamp(x, 0, 1)
+        return (x-torch.min(x))/(torch.max(x)-torch.min(x))
     
 class Decoder(pl.LightningModule):
     def __init__(self):

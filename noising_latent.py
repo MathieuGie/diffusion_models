@@ -11,8 +11,8 @@ import pytorch_lightning as pl
 from lightning.pytorch.loggers import MLFlowLogger
 from encdec import Encoder
 
-T=15
-beta_max = 1
+T=25
+beta_max = 0.07
 
 class CatImagesDataset(Dataset):
 
@@ -98,7 +98,7 @@ class ForwardDiffusion:
 
     def add_noise(self, inputs):
         noise = torch.randn(inputs.shape) * np.sqrt(self.beta)
-        print(torch.mean(noise), torch.std(noise))
+        #print(torch.mean(noise), torch.std(noise))
         return torch.clip(np.sqrt(1-self.beta)* inputs + noise, 0, 1)
     
     def update_beta(self, step):
@@ -127,7 +127,7 @@ class ForwardDiffusion:
 
             for i, (batch, filenames) in enumerate(self.data):  # Unpack images and filenames
 
-                #print(batch.shape)
+                #print(torch.std(batch), torch.max(batch), torch.min(batch))
                 noisy_batch = self.add_noise(batch)
                 #print(filenames)
                 self.save_images(noisy_batch, filenames, self.step)

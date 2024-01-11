@@ -6,8 +6,8 @@ from torchvision.utils import save_image
 from PIL import Image
 import os
 
-T=15
-beta_max = 0.12
+T=25
+beta_max = 0.07
 
 class CatImagesDataset(Dataset):
 

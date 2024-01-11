@@ -12,11 +12,12 @@ from sklearn.model_selection import train_test_split
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 from encdec import Decoder
+import time
 
 epochs = 800
 size = 40
 batches = 128
-noising_steps = 1
+noising_steps = 25
 
 
 class MLP(pl.LightningModule):
@@ -63,11 +64,14 @@ class MLP(pl.LightningModule):
         #print("1", target.shape)
         target = target.view(target.size(0), -1)
         #print("2", target.shape)
-        print(torch.mean(target), torch.std(target), torch.mean(outputs), torch.std(outputs))
+        #print("std", torch.std(target), torch.std(outputs))
+        #print("target", torch.max(target), torch.min(target))
+        #print("output", torch.max(outputs), torch.min(outputs))
 
         loss = nn.functional.mse_loss(outputs, target)
 
-        print("LOSS", loss)
+        #print("LOSS", loss)
+        #time.sleep(1)
         return loss
     
 

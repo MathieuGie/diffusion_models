@@ -44,7 +44,7 @@ class CNN(pl.LightningModule):
         #self.conv3 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=5)
 
         # Decoder layers
-        self.linear1 = nn.Linear(d, 2000)
+        self.linear1 = nn.Linear(d+1, 2000)
         self.linear2 = nn.Linear(2000, 1000)
         self.linear3 = nn.Linear(1000, 3*size**2)
 
@@ -68,8 +68,8 @@ class CNN(pl.LightningModule):
         # Concatenating with t
         #t_tensor = torch.full((x.size(0), 1, x.size(2), x.size(3)), t, device=x.device)
         #print(x.shape, t.shape)
-        x = torch.view(x.shape[0], -1)
-        t = torch.view(t.shape[0], -1)
+        x = x.view(x.shape[0], -1)
+        t = t.view(t.shape[0], -1)
         x = torch.cat((x, t), dim=1)
         #print(x.shape)
 
