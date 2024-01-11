@@ -17,6 +17,11 @@ size = 20
 batches = 128
 noising_steps = 50
 
+a=124
+b=248
+c=512#
+d=512
+
 
 class CNN(pl.LightningModule):
     def __init__(self):
@@ -25,27 +30,36 @@ class CNN(pl.LightningModule):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
         # Encoder layers
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=512, kernel_size=4, padding=1, stride=2)
-        #self.maxpolling1 = nn.MaxPool2d(padding=1, kernel_size=2)
-        self.conv2 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=12, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=a, kernel_size=4, padding=1, stride=2)
+        self.norm1 = nn.BatchNorm2d(a)
+
+        self.conv2 = nn.Conv2d(in_channels=a, out_channels=b, kernel_size=4, padding=1, stride=2)
+        self.norm2 = nn.BatchNorm2d(b)
+
+        #self.conv3 = nn.Conv2d(in_channels=b, out_channels=c, kernel_size=4, padding=1, stride=2)
+        #self.norm3 = nn.BatchNorm2d(c)
+
+        self.conv4 = nn.Conv2d(in_channels=b, out_channels=d, kernel_size=10)
         #self.maxpolling2 = nn.MaxPool2d(padding=1, kernel_size=2)
         #self.conv3 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=5)
 
         # Decoder layers
-        self.linear1 = nn.Linear(1025, 2000)
-        #self.linear2 = nn.Linear(800, 500)
-        self.linear3 = nn.Linear(2000, 3*size**2)
+        self.linear1 = nn.Linear(d, 2000)
+        self.linear2 = nn.Linear(2000, 1000)
+        self.linear3 = nn.Linear(1000, 3*size**2)
 
         self.epochh=0
 
     def forward(self, x, t):
         # Encoding
         #print(x.shape)
-        x = self.relu(self.conv1(x))
+        x = self.relu(self.norm1(self.conv1(x)))
+        x = self.relu(self.norm2(self.conv2(x)))
+        x = self.relu(self.conv4(x))
         #print(x.shape)
         #x = self.maxpolling1(x)
         #print(x.shape)
-        x = self.relu(self.conv2(x))
+        #x = self.relu(self.conv2(x))
         #print(x.shape)
         #x = self.maxpolling2(x)
         #print(x.shape)
@@ -54,6 +68,8 @@ class CNN(pl.LightningModule):
         # Concatenating with t
         #t_tensor = torch.full((x.size(0), 1, x.size(2), x.size(3)), t, device=x.device)
         #print(x.shape, t.shape)
+        x = torch.view(x.shape[0], -1)
+        t = torch.view(t.shape[0], -1)
         x = torch.cat((x, t), dim=1)
         #print(x.shape)
 
@@ -61,7 +77,7 @@ class CNN(pl.LightningModule):
         #print(x.shape)
         # Decoding
         x = self.relu(self.linear1(x))
-        #x = self.relu(self.linear2(x))
+        x = self.relu(self.linear2(x))
         x = self.sigmoid(self.linear3(x))
 
         return x

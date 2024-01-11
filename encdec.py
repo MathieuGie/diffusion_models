@@ -15,10 +15,10 @@ import torchvision.transforms.functional as TF
 batches = 128
 epochs = 800
 
-a=64
-b=256
-c=1024
-d=4096
+a=124
+b=248
+c=512#
+d=512
 e=122#
 f=48#
 g=56#
@@ -38,11 +38,11 @@ class Encoder(pl.LightningModule):
         self.conv2 = nn.Conv2d(in_channels=a, out_channels=b, kernel_size=4, padding=1, stride=2)
         self.norm2 = nn.BatchNorm2d(b)
 
-        self.conv3 = nn.Conv2d(in_channels=b, out_channels=c, kernel_size=4, padding=1, stride=2)
-        self.norm3 = nn.BatchNorm2d(c)
+        #self.conv3 = nn.Conv2d(in_channels=b, out_channels=c, kernel_size=4, padding=1, stride=2)
+        #self.norm3 = nn.BatchNorm2d(c)
 
-        self.conv4 = nn.Conv2d(in_channels=c, out_channels=d, kernel_size=10)
-        self.norm4 = nn.BatchNorm2d(d)
+        self.conv4 = nn.Conv2d(in_channels=b, out_channels=d, kernel_size=10)
+        #self.norm4 = nn.BatchNorm2d(d)
         #self.conv5 = nn.Conv2d(in_channels=d, out_channels=e, kernel_size=13)
         #self.norm5 = nn.BatchNorm2d(e)
 
@@ -54,14 +54,14 @@ class Encoder(pl.LightningModule):
   
     def forward(self, x):
         
-        x = self.relu(self.norm1(self.conv1(x)))#66
-        print(x.shape)
-        x = self.relu(self.norm2(self.conv2(x)))#21
-        print(x.shape)
-        x = self.relu(self.norm3(self.conv3(x)))#6
-        print(x.shape)
+        x = self.relu(self.norm1(self.conv1(x)))#40
+        #print(x.shape)
+        x = self.relu(self.norm2(self.conv2(x)))#20
+        #print(x.shape)
+        #x = self.relu(self.norm3(self.conv3(x)))#10
+        #print(x.shape)
         x = self.conv4(x)#1
-        print(x.shape)
+        #print(x.shape)
         #x = self.relu(self.norm5(self.conv5(x)))#7
         #print(x.shape)
         #x = self.relu(self.norm6(self.conv6(x)))#4
@@ -72,7 +72,7 @@ class Encoder(pl.LightningModule):
 
         #print("end of encoder", x.shape)
 
-        return self.sigmoid(x)
+        return torch.clamp(x, 0, 1)
     
 class Decoder(pl.LightningModule):
     def __init__(self):
@@ -91,11 +91,11 @@ class Decoder(pl.LightningModule):
         #self.deconv3 = nn.ConvTranspose2d(in_channels=e, out_channels=d, kernel_size=13)
         #self.norm3 = nn.BatchNorm2d(d)
 
-        self.deconv4 = nn.ConvTranspose2d(in_channels=d, out_channels=c, kernel_size=10)
-        self.norm4 = nn.BatchNorm2d(c)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=d, out_channels=b, kernel_size=10)
+        self.norm4 = nn.BatchNorm2d(b)
 
-        self.deconv5 = nn.ConvTranspose2d(in_channels=c, out_channels=b, kernel_size=4, padding=1, stride=2)
-        self.norm5 = nn.BatchNorm2d(b)
+        #self.deconv5 = nn.ConvTranspose2d(in_channels=c, out_channels=b, kernel_size=4, padding=1, stride=2)
+        #self.norm5 = nn.BatchNorm2d(b)
 
         self.deconv6 = nn.ConvTranspose2d(in_channels=b, out_channels=a, kernel_size=4, padding=1, stride=2)
         self.norm6 = nn.BatchNorm2d(a)
@@ -112,13 +112,13 @@ class Decoder(pl.LightningModule):
         #x = self.relu(self.norm3(self.deconv3(x))) 
         #print(x.shape)
         x = self.relu(self.norm4(self.deconv4(x))) 
-        print(x.shape)
-        x = self.relu(self.norm5(self.deconv5(x)))
-        print(x.shape)
+        #print(x.shape)
+        #x = self.relu(self.norm5(self.deconv5(x)))
+        #print(x.shape)
         x = self.relu(self.norm6(self.deconv6(x)))
-        print(x.shape)
+        #print(x.shape)
         x = self.deconv7(x)
-        print("end of decoder", x.shape)
+        #print("end of decoder", x.shape)
 
         return self.sigmoid(x)
 
@@ -131,6 +131,15 @@ class Encdec(pl.LightningModule):
 
         self.encoder = Encoder().to(mps_device)
         self.decoder = Decoder().to(mps_device)
+
+        image = test_dataset[0].to(mps_device)
+        if not os.path.exists('predictions_encdec'):
+                os.makedirs('predictions_encdec')
+
+        pil_image = TF.to_pil_image(image)
+
+        image_path = os.path.join('predictions_encdec', f"original_image.png")
+        pil_image.save(image_path, inplace=True)
 
     def forward(self, x):
         

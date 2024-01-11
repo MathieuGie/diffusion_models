@@ -13,10 +13,10 @@ from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 from encdec import Decoder
 
-epochs = 500
-size = 200
+epochs = 800
+size = 40
 batches = 128
-noising_steps = 10
+noising_steps = 1
 
 
 class MLP(pl.LightningModule):
@@ -28,9 +28,10 @@ class MLP(pl.LightningModule):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
         
-        self.linear1 = nn.Linear(601, 2400)
-        self.linear2 = nn.Linear(2400, 1200)
-        self.linear3 = nn.Linear(1200, 600)
+        self.linear1 = nn.Linear(513, 4100)
+        self.linear2 = nn.Linear(4100, 2050)
+        self.linear3 = nn.Linear(2050, 1024)
+        self.linear4 = nn.Linear(1024, 512)
 
         self.decoder = Decoder()
         self.decoder.load_state_dict(torch.load("decoder.chkpt"))
@@ -45,7 +46,8 @@ class MLP(pl.LightningModule):
 
         x = self.relu(self.linear1(x))
         x = self.relu(self.linear2(x))
-        x = self.sigmoid(self.linear3(x))
+        x = self.relu(self.linear3(x))
+        x = self.linear4(x)
 
         return x
     
@@ -53,12 +55,19 @@ class MLP(pl.LightningModule):
 
         noisy_imgs, clean_imgs, t = batch
 
+        #print("hoho", noisy_imgs.shape, clean_imgs.shape, t.shape )
+
         outputs = self(noisy_imgs, t)
 
         target = noisy_imgs-clean_imgs
+        #print("1", target.shape)
         target = target.view(target.size(0), -1)
+        #print("2", target.shape)
+        print(torch.mean(target), torch.std(target), torch.mean(outputs), torch.std(outputs))
 
         loss = nn.functional.mse_loss(outputs, target)
+
+        print("LOSS", loss)
         return loss
     
 
@@ -86,12 +95,12 @@ class MLP(pl.LightningModule):
         
         with torch.no_grad():
 
-            image = torch.rand((600,1)).to(mps_device)
+            image = torch.rand((512,1)).to(mps_device)
             step=1
             i=0
             
             if not os.path.exists('predictions_latent'):
-                os.makedirs('predictions_latent', inplace=True)
+                os.makedirs('predictions_latent')
             step_folder = os.path.join('predictions_latent', f'epoch_{self.epochh}')
 
             os.makedirs(step_folder, exist_ok=True)
@@ -104,15 +113,18 @@ class MLP(pl.LightningModule):
                 step_tensor[0,0]=step
 
                 result = model(batched_image, step_tensor)[0,:]
+
                 result = result.view(result.size(0), 1)
+
+                print("result", torch.mean(result), torch.std(result))
 
                 image-=result.to(mps_device)
 
-                dec_image = self.decoder(image.reshape(image.shape[0], 1, 1))
+                dec_image = self.decoder(image.reshape(1, image.shape[0], 1, 1))
 
                 step-=1/noising_steps
 
-                pil_image = TF.to_pil_image(dec_image)
+                pil_image = TF.to_pil_image(dec_image.reshape(dec_image.shape[1], size, size))
 
                 image_path = os.path.join(step_folder, f"image_{i}.png")
                 pil_image.save(image_path, inplace=True)
@@ -166,8 +178,10 @@ class DenoisingDataset(Dataset):
         more_noisy_image = torch.load(more_noisy_img_path)
         less_noisy_image = torch.load(less_noisy_img_path)
 
-        step_tensor = torch.zeros((1,1,1)) 
-        step_tensor[0,0,0]=step
+        step_tensor = torch.zeros((1)) 
+        step_tensor[0]=step
+
+        #print(more_noisy_image.shape,less_noisy_image.shape, step_tensor.shape )
 
         return more_noisy_image, less_noisy_image, step_tensor
 
