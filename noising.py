@@ -6,8 +6,8 @@ from torchvision.utils import save_image
 from PIL import Image
 import os
 
-T=60
-beta_max = 0.02
+T=50
+beta_max = 0.03
 
 class CatImagesDataset(Dataset):
 
@@ -99,7 +99,7 @@ class ForwardDiffusion:
 
 # Define your transforms here
 transformations = transforms.Compose([
-    transforms.Resize((20, 20)),  # Resize the image
+    transforms.Resize((40, 40)),  # Resize the image
     transforms.ToTensor(),  # Convert the image to a PyTorch Tensor
 ])
 
